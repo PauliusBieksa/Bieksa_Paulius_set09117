@@ -26,12 +26,17 @@ struct piece
 	int column;
 };
 
-//struct piece
-//{
-//	bool king;
-//	int row;
-//	int column;
-//};
+// Container for tracking moves
+struct move
+{
+	int startRow;
+	int startColumn;
+	int endRow;
+	int endColumn;
+	bool taken;
+	int takenRow;
+	int takenColumn;
+};
 
 space board[8][8];	// stores the current board configuration
 char c_for_e[10];	// characters that represent spaces on the board
@@ -93,15 +98,21 @@ std::vector<piece> haveToMove(int player)
 	std::vector<piece> l = std::vector<piece>();
 	int opponent;
 	int opponentKing;
+	int own;
+	int ownKing;
 	if (player == 1)
 	{
 		opponent = black;
 		opponentKing = blackKing;
+		own = white;
+		ownKing = whiteKing;
 	}
 	else
 	{
 		opponent = white;
 		opponentKing = whiteKing;
+		own = black;
+		ownKing = blackKing;
 	}
 
 	// Find all mandatory moves
@@ -154,41 +165,57 @@ std::vector<piece> haveToMove(int player)
 				// Enough space up
 				if (p.row - i > 0)
 				{
-					// Can take up-left
-					if (p.column - i > 0
-						&& (board[p.row - i][p.column - i] == opponent || board[p.row - i][p.column - i] == opponentKing)
-						&& board[p.row - i - 1][p.column - i - 1] == empty)
+					if (p.column - i > 0)
 					{
-						l.push_back(p);
-						break;
+						// Can take up-left
+						if ((board[p.row - i][p.column - i] == opponent || board[p.row - i][p.column - i] == opponentKing)
+							&& board[p.row - i - 1][p.column - i - 1] == empty)
+						{
+							l.push_back(p);
+							break;
+						}
+						else if (board[p.row - i][p.column - i] == own || board[p.row - i][p.column - i] == ownKing)
+							break;	// Break if blocked by own piece
 					}
-					// Can take up-right
-					else if (p.column + i < 7
-						&& (board[p.row - i][p.column + i] == opponent || board[p.row - i][p.column + i] == opponentKing)
-						&& board[p.row - i - 1][p.column + i + 1] == empty)
+					else if (p.column + i < 7)
 					{
-						l.push_back(p);
-						break;
+						// Can take up-right
+						if ((board[p.row - i][p.column + i] == opponent || board[p.row - i][p.column + i] == opponentKing)
+							&& board[p.row - i - 1][p.column + i + 1] == empty)
+						{
+							l.push_back(p);
+							break;
+						}
+						else if (board[p.row - i][p.column + i] == own || board[p.row - i][p.column + i] == ownKing)
+							break;	// Break if blocked by own piece
 					}
 				}
 				// Enough space down
 				else if (p.row + i < 7)
 				{
-					// Can take down-left
-					if (p.column - i > 0
-						&& (board[p.row + i][p.column - i] == opponent || board[p.row + i][p.column - i] == opponentKing)
-						&& board[p.row + i - 1][p.column - i - 1] == empty)
+					if (p.column - i > 0)
 					{
-						l.push_back(p);
-						break;
+						// Can take down-left
+						if ((board[p.row + i][p.column - i] == opponent || board[p.row + i][p.column - i] == opponentKing)
+							&& board[p.row + i - 1][p.column - i - 1] == empty)
+						{
+							l.push_back(p);
+							break;
+						}
+						else if (board[p.row + i][p.column - i] == own || board[p.row + i][p.column - i] == ownKing)
+							break;	// Break if blocked by own piece
 					}
 					// Can take down-right
-					else if (p.column + i < 7
-						&& (board[p.row + i][p.column + i] == opponent || board[p.row + i][p.column + i] == opponentKing)
-						&& board[p.row + i - 1][p.column + i + 1] == empty)
+					else if (p.column + i < 7)
 					{
-						l.push_back(p);
-						break;
+						if ((board[p.row + i][p.column + i] == opponent || board[p.row + i][p.column + i] == opponentKing)
+							&& board[p.row + i - 1][p.column + i + 1] == empty)
+						{
+							l.push_back(p);
+							break;
+						}
+						else if (board[p.row + i][p.column + i] == own || board[p.row + i][p.column + i] == ownKing)
+							break;	// Break if blocked by own piece
 					}
 				}
 			}
@@ -308,7 +335,182 @@ void clearSelection()
 
 
 
-
+std::vector<move> movesAvailable(int player, piece selected_piece, bool can_take)
+{
+	std::vector<move> moves = std::vector<move>();
+	int opponent;
+	int opponentKing;
+	int own;
+	int ownKing;
+	if (player == 1)
+	{
+		opponent = black;
+		opponentKing = blackKing;
+		own = white;
+		ownKing = whiteKing;
+	}
+	else
+	{
+		opponent = white;
+		opponentKing = whiteKing;
+		own = black;
+		ownKing = blackKing;
+	}
+	if (selected_piece.king)
+	{
+		if (can_take)
+		{
+			for (int i = 1; i < 6; i++)
+			{
+				// Enough space up
+				if (selected_piece.row - i - 1 >= 0)
+				{
+					// Enough space left
+					if (selected_piece.column - i - 1 >= 0)
+					{
+						// Up-left
+						if (board[selected_piece.row - i][selected_piece.column - i] == opponent || board[selected_piece.row - i][selected_piece.column - i] == opponentKing
+							&& board[selected_piece.row - i - 1][selected_piece.column - i - 1] == empty)
+						{
+							move m;
+							m.startRow = selected_piece.row;
+							m.startColumn = selected_piece.column;
+							m.endRow = selected_piece.row - i - 1;
+							m.endColumn = selected_piece.column - i - 1;
+							m.taken = true;
+							m.takenRow = selected_piece.row - i;
+							m.takenColumn = selected_piece.column - i;
+							moves.push_back(m);
+							for (int j = i + 1; j < 6; j++)
+							{
+								// Enough space
+								if (selected_piece.row - j >= 0 && selected_piece.column - j >= 0)
+								{
+									if (board[selected_piece.row - j][selected_piece.column - j] == empty)
+									{
+										// check if copy constructor is used /////////////////////////
+										m.endRow = selected_piece.row - j;
+										m.endColumn = selected_piece.column - j;
+										moves.push_back(m);
+									}
+									else
+										break;
+								}
+							}
+						}
+					}
+					// Enough space right
+					else if (selected_piece.column + i + 1 <= 7)
+					{
+						// Up-right
+						if (board[selected_piece.row - i][selected_piece.column + i] == opponent || board[selected_piece.row - i][selected_piece.column + i] == opponentKing
+							&& board[selected_piece.row - i - 1][selected_piece.column + i + 1] == empty)
+						{
+							move m;
+							m.startRow = selected_piece.row;
+							m.startColumn = selected_piece.column;
+							m.endRow = selected_piece.row - i - 1;
+							m.endColumn = selected_piece.column + i + 1;
+							m.taken = true;
+							m.takenRow = selected_piece.row - i;
+							m.takenColumn = selected_piece.column + i;
+							moves.push_back(m);
+							for (int j = i + 1; j < 6; j++)
+							{
+								// Enough space
+								if (selected_piece.row - j >= 0 && selected_piece.column + j <= 7)
+								{
+									if (board[selected_piece.row - j][selected_piece.column + j] == empty)
+									{
+										// check if copy constructor is used /////////////////////////
+										m.endRow = selected_piece.row - j;
+										m.endColumn = selected_piece.column + j;
+										moves.push_back(m);
+									}
+									else
+										break;
+								}
+							}
+						}
+					}
+				}
+				// Enough space down
+				else if (selected_piece.row + i + 1 <= 7)
+				{
+					// Enough space left
+					if (selected_piece.column - i - 1 >= 0)
+					{
+						// Down-left
+						if (board[selected_piece.row + i][selected_piece.column - i] == opponent || board[selected_piece.row + i][selected_piece.column - i] == opponentKing
+							&& board[selected_piece.row + i + 1][selected_piece.column - i - 1] == empty)
+						{
+							move m;
+							m.startRow = selected_piece.row;
+							m.startColumn = selected_piece.column;
+							m.endRow = selected_piece.row + i + 1;
+							m.endColumn = selected_piece.column - i - 1;
+							m.taken = true;
+							m.takenRow = selected_piece.row + i;
+							m.takenColumn = selected_piece.column - i;
+							moves.push_back(m);
+							for (int j = i + 1; j < 6; j++)
+							{
+								// Enough space
+								if (selected_piece.row + j <= 7 && selected_piece.column - j >= 0)
+								{
+									if (board[selected_piece.row + j][selected_piece.column - j] == empty)
+									{
+										// check if copy constructor is used /////////////////////////
+										m.endRow = selected_piece.row + j;
+										m.endColumn = selected_piece.column - j;
+										moves.push_back(m);
+									}
+									else
+										break;
+								}
+							}
+						}
+					}
+					// Enough space right
+					else if (selected_piece.column + i + 1 <= 7)
+					{
+						// Down-right
+						if (board[selected_piece.row + i][selected_piece.column + i] == opponent || board[selected_piece.row + i][selected_piece.column + i] == opponentKing
+							&& board[selected_piece.row + i + 1][selected_piece.column + i + 1] == empty)
+						{
+							move m;
+							m.startRow = selected_piece.row;
+							m.startColumn = selected_piece.column;
+							m.endRow = selected_piece.row + i + 1;
+							m.endColumn = selected_piece.column + i + 1;
+							m.taken = true;
+							m.takenRow = selected_piece.row + i;
+							m.takenColumn = selected_piece.column + i;
+							moves.push_back(m);
+							for (int j = i + 1; j < 6; j++)
+							{
+								// Enough space
+								if (selected_piece.row + j <= 7 && selected_piece.column + j <= 7)
+								{
+									if (board[selected_piece.row + j][selected_piece.column + j] == empty)
+									{
+										// check if copy constructor is used /////////////////////////
+										m.endRow = selected_piece.row + j;
+										m.endColumn = selected_piece.column + j;
+										moves.push_back(m);
+									}
+									else
+										break;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return moves;
+}
 
 
 
@@ -424,7 +626,7 @@ int main()
 				break;
 			printBoard();
 		}
-		
+
 
 
 		std::cout << "End of debug loop. 0 to leave." << std::endl;
