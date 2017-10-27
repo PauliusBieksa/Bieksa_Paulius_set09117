@@ -18,12 +18,20 @@ enum space
 	unused
 };
 
+// Container for information about a piece
 struct piece
 {
 	bool king;
 	int row;
 	int column;
 };
+
+//struct piece
+//{
+//	bool king;
+//	int row;
+//	int column;
+//};
 
 space board[8][8];	// stores the current board configuration
 char c_for_e[10];	// characters that represent spaces on the board
@@ -296,6 +304,11 @@ void clearSelection()
 				board[i][j] = blackKing;
 		}
 }
+
+
+
+
+
 
 
 
