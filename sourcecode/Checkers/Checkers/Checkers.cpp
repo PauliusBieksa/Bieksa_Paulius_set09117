@@ -334,30 +334,188 @@ void clearSelection()
 
 
 
+// Part of movesAvailble method to reduce ammount of code / Returns all available taking moves for a selected king
+std::vector<move> movesHelperKingTake(piece selected_piece, int opponent, int opponentKing, std::vector<move> moves, int iterator, int leftRight, int upDown)
+{
+	int i = iterator;
+	if (board[selected_piece.row + i * upDown][selected_piece.column + i * leftRight] == opponent || board[selected_piece.row + i * upDown][selected_piece.column + i * leftRight] == opponentKing
+		&& board[selected_piece.row + (i + 1) * upDown][selected_piece.column + (i + 1) * leftRight] == empty)
+	{
+		move m;
+		m.startRow = selected_piece.row;
+		m.startColumn = selected_piece.column;
+		m.endRow = selected_piece.row + (i + 1)  * upDown;
+		m.endColumn = selected_piece.column + (i + 1) * leftRight;
+		m.taken = true;
+		m.takenRow = selected_piece.row + i * upDown;
+		m.takenColumn = selected_piece.column + i * leftRight;
+		moves.push_back(m);
+		for (int j = i + 1; j < 6; j++)
+		{
+			bool enoughSpace = false;
+			// Enough space
+			if (upDown < 0 && selected_piece.row - j >= 0)
+			{
+				if (leftRight < 0 && selected_piece.column - j >= 0)
+					enoughSpace = true;
+				else if (leftRight > 0 && selected_piece.column + j <= 7)
+					enoughSpace = true;
+			}
+			else if (upDown > 0 && selected_piece.row + j <= 7)
+				if (leftRight < 0 && selected_piece.column - j >= 0)
+					enoughSpace = true;
+				else if (leftRight > 0 && selected_piece.column + j <= 7)
+					enoughSpace = true;
 
+			if (enoughSpace)
+			{
+				if (board[selected_piece.row + j * upDown][selected_piece.column + j * leftRight] == empty)
+				{
+					m.endRow = selected_piece.row + j * upDown;
+					m.endColumn = selected_piece.column + j * leftRight;
+					moves.push_back(m);
+				}
+				else
+					break;
+			}
+		}
+	}
+	return moves;
+}
+
+
+
+// Part of movesAvailble method to reduce ammount of code / Returns all available non-taking moves for a selected king
+std::vector<move> movesHelperKingMove(piece selected_piece, std::vector<move> moves, int iterator, int leftRight, int upDown)
+{
+	int i = iterator;
+	bool enoughSpace = false;
+	// Enough space
+	if (upDown < 0 && selected_piece.row - i >= 0)
+	{
+		if (leftRight < 0 && selected_piece.column - i >= 0)
+			enoughSpace = true;
+		else if (leftRight > 0 && selected_piece.column + i <= 7)
+			enoughSpace = true;
+	}
+	else if (upDown > 0 && selected_piece.row + i <= 7)
+		if (leftRight < 0 && selected_piece.column - i >= 0)
+			enoughSpace = true;
+		else if (leftRight > 0 && selected_piece.column + i <= 7)
+			enoughSpace = true;
+
+	if (enoughSpace)
+	{
+		if (board[selected_piece.row + i * upDown][selected_piece.column + i * leftRight] == empty)
+		{
+			move m;
+			m.startRow = selected_piece.row;
+			m.startColumn = selected_piece.column;
+			m.endRow = selected_piece.row + i * upDown;
+			m.endColumn = selected_piece.column + i * leftRight;
+			m.taken = false;
+			moves.push_back(m);
+		}
+	}
+	return moves;
+}
+
+
+
+// Part of movesAvailble method to reduce ammount of code / Returns all available taking moves for a selected non-king
+std::vector<move> movesHelperTake(piece selected_piece, int opponent, int opponentKing, std::vector<move> moves, int leftRight, int upDown)
+{
+	bool enoughSpace = false;
+	// Enough space
+	if (upDown < 0 && selected_piece.row - 2 >= 0)
+	{
+		if (leftRight < 0 && selected_piece.column - 2 >= 0)
+			enoughSpace = true;
+		else if (leftRight > 0 && selected_piece.column + 2 <= 7)
+			enoughSpace = true;
+	}
+	else if (upDown > 0 && selected_piece.row + 2 <= 7)
+		if (leftRight < 0 && selected_piece.column - 2 >= 0)
+			enoughSpace = true;
+		else if (leftRight > 0 && selected_piece.column + 2 <= 7)
+			enoughSpace = true;
+
+	if (enoughSpace
+		&& (board[selected_piece.row + upDown][selected_piece.column + leftRight] == opponent
+			|| board[selected_piece.row + upDown][selected_piece.column + leftRight] == opponentKing)
+		&& board[selected_piece.row + 2 * upDown][selected_piece.column + 2 * leftRight] == empty)
+	{
+		move m;
+		m.startRow = selected_piece.row;
+		m.startColumn = selected_piece.column;
+		m.endRow = selected_piece.row + 2 * upDown;
+		m.endColumn = selected_piece.column + 2 * leftRight;
+		m.taken = true;
+		m.takenRow = selected_piece.row + upDown;
+		m.takenColumn = selected_piece.column + leftRight;
+		moves.push_back(m);
+	}
+	return moves;
+}
+
+
+
+// Part of movesAvailble method to reduce ammount of code / Returns all available non-taking moves for a selected non-king
+std::vector<move> movesHelperMove(piece selected_piece, std::vector<move> moves, int leftRight, int upDown)
+{
+	bool enoughSpace = false;
+	// Enough space
+	if (upDown < 0 && selected_piece.row - 1 >= 0)
+	{
+		if (leftRight < 0 && selected_piece.column - 1 >= 0)
+			enoughSpace = true;
+		else if (leftRight > 0 && selected_piece.column + 1 <= 7)
+			enoughSpace = true;
+	}
+	else if (upDown > 0 && selected_piece.row + 1 <= 7)
+		if (leftRight < 0 && selected_piece.column - 1 >= 0)
+			enoughSpace = true;
+		else if (leftRight > 0 && selected_piece.column + 1 <= 7)
+			enoughSpace = true;
+
+	if (enoughSpace && board[selected_piece.row + upDown][selected_piece.column + leftRight] == empty)
+	{
+		move m;
+		m.startRow = selected_piece.row;
+		m.startColumn = selected_piece.column;
+		m.endRow = selected_piece.row + upDown;
+		m.endColumn = selected_piece.column + leftRight;
+		m.taken = false;
+		moves.push_back(m);
+	}
+	return moves;
+}
+
+
+
+// Returns all available moves for one piece
 std::vector<move> movesAvailable(int player, piece selected_piece, bool can_take)
 {
 	std::vector<move> moves = std::vector<move>();
 	int opponent;
 	int opponentKing;
-	int own;
-	int ownKing;
 	if (player == 1)
 	{
 		opponent = black;
 		opponentKing = blackKing;
-		own = white;
-		ownKing = whiteKing;
 	}
 	else
 	{
 		opponent = white;
 		opponentKing = whiteKing;
-		own = black;
-		ownKing = blackKing;
 	}
+	// Multipliers that can be 1 or -1 for dealing with signs
+	int leftRight = 1;
+	int upDown = 1;
+	// Moves for a king piece
 	if (selected_piece.king)
 	{
+		// Moves for a king piece that can take
 		if (can_take)
 		{
 			for (int i = 1; i < 6; i++)
@@ -368,70 +526,14 @@ std::vector<move> movesAvailable(int player, piece selected_piece, bool can_take
 					// Enough space left
 					if (selected_piece.column - i - 1 >= 0)
 					{
-						// Up-left
-						if (board[selected_piece.row - i][selected_piece.column - i] == opponent || board[selected_piece.row - i][selected_piece.column - i] == opponentKing
-							&& board[selected_piece.row - i - 1][selected_piece.column - i - 1] == empty)
-						{
-							move m;
-							m.startRow = selected_piece.row;
-							m.startColumn = selected_piece.column;
-							m.endRow = selected_piece.row - i - 1;
-							m.endColumn = selected_piece.column - i - 1;
-							m.taken = true;
-							m.takenRow = selected_piece.row - i;
-							m.takenColumn = selected_piece.column - i;
-							moves.push_back(m);
-							for (int j = i + 1; j < 6; j++)
-							{
-								// Enough space
-								if (selected_piece.row - j >= 0 && selected_piece.column - j >= 0)
-								{
-									if (board[selected_piece.row - j][selected_piece.column - j] == empty)
-									{
-										// check if copy constructor is used /////////////////////////
-										m.endRow = selected_piece.row - j;
-										m.endColumn = selected_piece.column - j;
-										moves.push_back(m);
-									}
-									else
-										break;
-								}
-							}
-						}
+						// Can take up-left
+						moves = movesHelperKingTake(selected_piece, opponent, opponentKing, moves, i, -1, -1);
 					}
 					// Enough space right
 					else if (selected_piece.column + i + 1 <= 7)
 					{
-						// Up-right
-						if (board[selected_piece.row - i][selected_piece.column + i] == opponent || board[selected_piece.row - i][selected_piece.column + i] == opponentKing
-							&& board[selected_piece.row - i - 1][selected_piece.column + i + 1] == empty)
-						{
-							move m;
-							m.startRow = selected_piece.row;
-							m.startColumn = selected_piece.column;
-							m.endRow = selected_piece.row - i - 1;
-							m.endColumn = selected_piece.column + i + 1;
-							m.taken = true;
-							m.takenRow = selected_piece.row - i;
-							m.takenColumn = selected_piece.column + i;
-							moves.push_back(m);
-							for (int j = i + 1; j < 6; j++)
-							{
-								// Enough space
-								if (selected_piece.row - j >= 0 && selected_piece.column + j <= 7)
-								{
-									if (board[selected_piece.row - j][selected_piece.column + j] == empty)
-									{
-										// check if copy constructor is used /////////////////////////
-										m.endRow = selected_piece.row - j;
-										m.endColumn = selected_piece.column + j;
-										moves.push_back(m);
-									}
-									else
-										break;
-								}
-							}
-						}
+						// Can take up-right
+						moves = movesHelperKingTake(selected_piece, opponent, opponentKing, moves, i, +1, -1);
 					}
 				}
 				// Enough space down
@@ -440,72 +542,59 @@ std::vector<move> movesAvailable(int player, piece selected_piece, bool can_take
 					// Enough space left
 					if (selected_piece.column - i - 1 >= 0)
 					{
-						// Down-left
-						if (board[selected_piece.row + i][selected_piece.column - i] == opponent || board[selected_piece.row + i][selected_piece.column - i] == opponentKing
-							&& board[selected_piece.row + i + 1][selected_piece.column - i - 1] == empty)
-						{
-							move m;
-							m.startRow = selected_piece.row;
-							m.startColumn = selected_piece.column;
-							m.endRow = selected_piece.row + i + 1;
-							m.endColumn = selected_piece.column - i - 1;
-							m.taken = true;
-							m.takenRow = selected_piece.row + i;
-							m.takenColumn = selected_piece.column - i;
-							moves.push_back(m);
-							for (int j = i + 1; j < 6; j++)
-							{
-								// Enough space
-								if (selected_piece.row + j <= 7 && selected_piece.column - j >= 0)
-								{
-									if (board[selected_piece.row + j][selected_piece.column - j] == empty)
-									{
-										// check if copy constructor is used /////////////////////////
-										m.endRow = selected_piece.row + j;
-										m.endColumn = selected_piece.column - j;
-										moves.push_back(m);
-									}
-									else
-										break;
-								}
-							}
-						}
+						// Can take down-left
+						moves = movesHelperKingTake(selected_piece, opponent, opponentKing, moves, i, -1, 1);
 					}
 					// Enough space right
 					else if (selected_piece.column + i + 1 <= 7)
 					{
-						// Down-right
-						if (board[selected_piece.row + i][selected_piece.column + i] == opponent || board[selected_piece.row + i][selected_piece.column + i] == opponentKing
-							&& board[selected_piece.row + i + 1][selected_piece.column + i + 1] == empty)
-						{
-							move m;
-							m.startRow = selected_piece.row;
-							m.startColumn = selected_piece.column;
-							m.endRow = selected_piece.row + i + 1;
-							m.endColumn = selected_piece.column + i + 1;
-							m.taken = true;
-							m.takenRow = selected_piece.row + i;
-							m.takenColumn = selected_piece.column + i;
-							moves.push_back(m);
-							for (int j = i + 1; j < 6; j++)
-							{
-								// Enough space
-								if (selected_piece.row + j <= 7 && selected_piece.column + j <= 7)
-								{
-									if (board[selected_piece.row + j][selected_piece.column + j] == empty)
-									{
-										// check if copy constructor is used /////////////////////////
-										m.endRow = selected_piece.row + j;
-										m.endColumn = selected_piece.column + j;
-										moves.push_back(m);
-									}
-									else
-										break;
-								}
-							}
-						}
+						// Can take down-right
+						moves = movesHelperKingTake(selected_piece, opponent, opponentKing, moves, i, 1, 1);
 					}
 				}
+			}
+		}
+		// Moves for a king piece that can't take
+		else
+		{
+			for (int i = 1; i < 7; i++)
+			{
+				// Get moves for up-left, up-right, down-left, down-right respectively
+				moves = movesHelperKingMove(selected_piece, moves, i, -1, -1);
+				moves = movesHelperKingMove(selected_piece, moves, i, 1, -1);
+				moves = movesHelperKingMove(selected_piece, moves, i, -1, 1);
+				moves = movesHelperKingMove(selected_piece, moves, i, 1, 1);
+			}
+		}
+	}
+	// Moves for a non-king piece
+	else
+	{
+		// Moves for a non-king piece that can take
+		if (can_take)
+		{
+			// Get moves for up-left, up-right, down-left, down-right respectively
+			moves = movesHelperTake(selected_piece, opponent, opponentKing, moves, -1, -1);
+			moves = movesHelperTake(selected_piece, opponent, opponentKing, moves, 1, -1);
+			moves = movesHelperTake(selected_piece, opponent, opponentKing, moves, -1, 1);
+			moves = movesHelperTake(selected_piece, opponent, opponentKing, moves, 1, 1);
+		}
+		// Moves for a non-king piece that can't take
+		else
+		{
+			// Player 1 only moves up
+			if (player == 1)
+			{
+				// Get moves for up-left, up-right respectively
+				moves = movesHelperMove(selected_piece, moves, -1, -1);
+				moves = movesHelperMove(selected_piece, moves, 1, -1);
+			}
+			// Player 2 only moves down
+			else
+			{
+				// Get moves for down-left, down-right respectively
+				moves = movesHelperMove(selected_piece, moves, -1, 1);
+				moves = movesHelperMove(selected_piece, moves, 1, 1);
 			}
 		}
 	}
@@ -573,14 +662,17 @@ int main()
 
 	std::vector<piece> choices = std::vector<piece>();	// A list containing all pieces a player can move (updated each turn)
 	int player = 1;
+	bool can_take = false;	// Used in move selection to to get available moves
 	int selected = 0;	// Saves which piece is selected
 	// Game loop
 	while (playerPieces[0].size() > 0 && playerPieces[1].size() > 0)
 	{
 		printBoard();
 		choices = haveToMove(player);
+		can_take = true;
 		if (choices.size() == 0)
 		{
+			can_take = false;
 			choices = canMove(player);
 			// If all movement is blocked the player loses
 			if (choices.size() == 0)
@@ -595,6 +687,9 @@ int main()
 		// Cycle through selections until break is called
 		while (true)
 		{
+			// Get available moves
+			std::vector<move> moves = movesAvailable(player, choices[selected], can_take);
+
 			// Unselect previously selected piece
 			clearSelection();
 			// Show selection
@@ -612,6 +707,9 @@ int main()
 				else
 					board[choices[selected].row][choices[selected].column] = selectedBlack;
 			}
+			printBoard();
+
+			// Select next piece
 			std::string tmp = "";
 			std::cout << "Press ENTER for next available move." << std::endl;
 			std::getline(std::cin, tmp);
@@ -624,7 +722,6 @@ int main()
 			}
 			else
 				break;
-			printBoard();
 		}
 
 
