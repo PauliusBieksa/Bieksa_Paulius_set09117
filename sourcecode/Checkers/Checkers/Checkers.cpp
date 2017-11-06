@@ -211,7 +211,7 @@ std::vector<piece> haveToMove(int player)
 					{
 						// Can take down-left
 						if ((board[p.row + i][p.column - i] == opponent || board[p.row + i][p.column - i] == opponentKing)
-							&& board[p.row + i - 1][p.column - i - 1] == empty)
+							&& board[p.row + i + 1][p.column - i - 1] == empty)
 						{
 							l.push_back(p);
 							break;
@@ -223,7 +223,7 @@ std::vector<piece> haveToMove(int player)
 					if (p.column + i < 7)
 					{
 						if ((board[p.row + i][p.column + i] == opponent || board[p.row + i][p.column + i] == opponentKing)
-							&& board[p.row + i - 1][p.column + i + 1] == empty)
+							&& board[p.row + i + 1][p.column + i + 1] == empty)
 						{
 							l.push_back(p);
 							break;
@@ -369,7 +369,7 @@ std::vector<move> movesHelperKingTake(piece selected_piece, int opponent, int op
 		m.taken = true;
 		m.takenRow = selected_piece.row + i * upDown;
 		m.takenColumn = selected_piece.column + i * leftRight;
-		moves.push_back(m);
+	//	moves.push_back(m);
 		for (int j = i + 1; j < 6; j++)
 		{
 			bool enoughSpace = false;
@@ -557,7 +557,7 @@ std::vector<move> movesAvailable(int player, piece selected_piece, bool can_take
 					}
 				}
 				// Enough space down
-				else if (selected_piece.row + i + 1 <= 7)
+				if (selected_piece.row + i + 1 <= 7)
 				{
 					// Enough space left
 					if (selected_piece.column - i - 1 >= 0)
@@ -641,9 +641,21 @@ void executeMove(move m, int player)
 					board[m.endRow][m.endColumn] = blackKing;
 			else
 				if (player == 1)
-					board[m.endRow][m.endColumn] = white;
+					if (m.endRow == 0)
+					{
+						board[m.endRow][m.endColumn] = whiteKing;
+						p.king = true;
+					}
+					else
+						board[m.endRow][m.endColumn] = white;
 				else
-					board[m.endRow][m.endColumn] = black;
+					if (m.endRow == 7)
+					{
+						board[m.endRow][m.endColumn] = blackKing;
+						p.king = true;
+					}
+					else
+						board[m.endRow][m.endColumn] = black;
 			break;
 		}
 	// If a piece is taken update opponents pieces and board
@@ -697,14 +709,30 @@ int main()
 
 
 	// debug piece(s)
-	{
-		board[4][3] = blackKing;
-		piece p;
-		p.row = 4;
-		p.column = 3;
-		p.king = true;
-		playerPieces[1].push_back(p);
-	}
+	//{
+	//	board[4][3] = blackKing;
+	//	piece p;
+	//	p.row = 4;
+	//	p.column = 3;
+	//	p.king = true;
+	//	playerPieces[1].push_back(p);
+	//}
+	//{
+	//	board[1][4] = blackKing;
+	//	piece p;
+	//	p.row = 1;
+	//	p.column = 4;
+	//	p.king = true;
+	//	playerPieces[1].push_back(p);
+	//}
+	//{
+	//	board[0][3] = whiteKing;
+	//	piece p;
+	//	p.row = 0;
+	//	p.column = 3;
+	//	p.king = true;
+	//	playerPieces[0].push_back(p);
+	//}
 
 	// Assign chars for enums
 	c_for_e[white] = 'w';
@@ -782,7 +810,7 @@ int main()
 			{
 				piece selectedPiece = choices[selected];
 				// Get available moves
-				std::vector<move> moves = movesAvailable(player, choices[selected], can_take);
+				std::vector<move> moves = movesAvailable(player, selectedPiece, can_take);
 				// Cycle through available moves until break is called
 				selected = 0;
 				while (true)
@@ -826,6 +854,9 @@ int main()
 						for (piece p : playerPieces[player == 1 ? 0 : 1])
 							if (p.row == moves[selected].endRow && p.column == moves[selected].endColumn)
 								selectedPiece = p;
+						moves = movesAvailable(player, selectedPiece, true);
+						if (moves.size() > 0 && can_take)
+							continue;
 						break;
 					}
 					else if (tmp == "s")
