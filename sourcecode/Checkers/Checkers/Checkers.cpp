@@ -15,7 +15,8 @@ enum space
 	selectedBlack,
 	selectedBlackKing,
 	empty,
-	unused
+	unused,
+	moveTo
 };
 
 // Container for information about a piece
@@ -44,7 +45,7 @@ struct move
 };
 
 space board[8][8];	// stores the current board configuration
-char c_for_e[10];	// characters that represent spaces on the board
+char c_for_e[11];	// characters that represent spaces on the board
 bool player1;		// True for player, false for AI
 bool player2;		// True for player, false for AI
 std::list<piece> playerPieces[2];	// All the pieces that belong to players
@@ -56,6 +57,8 @@ int winner;			// When a winner is determined this gets assigned to either 1 or 2
 // Prints the current board
 void printBoard()
 {
+	// Print some empty space to separate from previous prints
+	std::cout << std::endl << std::endl << std::endl << std::endl << std::endl << std::endl << std::endl << std::endl << std::endl << std::endl;
 	for (int i = 0; i < 8; i++)
 	{
 		for (int j = 0; j < 8; j++)
@@ -64,6 +67,8 @@ void printBoard()
 				std::cout << (char)201 << (char)205 << (char)205 << (char)205 << (char)187;
 			else if (board[i][j] == white || board[i][j] == whiteKing || board[i][j] == selectedWhite || board[i][j] == selectedWhiteKing)
 				std::cout << (char)218 << (char)196 << (char)196 << (char)196 << (char)191;
+			else if (board[i][j] == moveTo)
+				std::cout << "     ";
 			else
 				std::cout << c_for_e[board[i][j]] << c_for_e[board[i][j]] << c_for_e[board[i][j]] << c_for_e[board[i][j]] << c_for_e[board[i][j]];
 		}
@@ -78,6 +83,8 @@ void printBoard()
 				std::cout << (char)186 << "(" << c_for_e[board[i][j]] << ")" << (char)186;
 			else if (board[i][j] == selectedWhite || board[i][j] == selectedWhiteKing)
 				std::cout << (char)179 << "(" << c_for_e[board[i][j]] << ")" << (char)179;
+			else if (board[i][j] == moveTo)
+				std::cout << " " << " " << c_for_e[board[i][j]] << " " << " ";
 			else
 				std::cout << c_for_e[board[i][j]] << c_for_e[board[i][j]] << c_for_e[board[i][j]] << c_for_e[board[i][j]] << c_for_e[board[i][j]];
 		}
@@ -88,6 +95,8 @@ void printBoard()
 				std::cout << (char)200 << (char)205 << (char)205 << (char)205 << (char)188;
 			else if (board[i][j] == white || board[i][j] == whiteKing || board[i][j] == selectedWhite || board[i][j] == selectedWhiteKing)
 				std::cout << (char)192 << (char)196 << (char)196 << (char)196 << (char)217;
+			else if (board[i][j] == moveTo)
+				std::cout << "     ";
 			else
 				std::cout << c_for_e[board[i][j]] << c_for_e[board[i][j]] << c_for_e[board[i][j]] << c_for_e[board[i][j]] << c_for_e[board[i][j]];
 		}
@@ -144,7 +153,7 @@ std::vector<piece> haveToMove(int player)
 					l.push_back(p);
 				}
 			}
-			else if (p.row < 6)
+			if (p.row < 6)
 			{
 				// Can take down-left
 				if (p.column > 1
@@ -182,7 +191,7 @@ std::vector<piece> haveToMove(int player)
 						else if (board[p.row - i][p.column - i] == own || board[p.row - i][p.column - i] == ownKing)
 							break;	// Break if blocked by own piece
 					}
-					else if (p.column + i < 7)
+					if (p.column + i < 7)
 					{
 						// Can take up-right
 						if ((board[p.row - i][p.column + i] == opponent || board[p.row - i][p.column + i] == opponentKing)
@@ -211,7 +220,7 @@ std::vector<piece> haveToMove(int player)
 							break;	// Break if blocked by own piece
 					}
 					// Can take down-right
-					else if (p.column + i < 7)
+					if (p.column + i < 7)
 					{
 						if ((board[p.row + i][p.column + i] == opponent || board[p.row + i][p.column + i] == opponentKing)
 							&& board[p.row + i - 1][p.column + i + 1] == empty)
@@ -249,11 +258,13 @@ std::vector<piece> canMove(int player)
 					if (p.column > 0 && board[p.row - 1][p.column - 1] == empty)
 					{
 						l.push_back(p);
+						continue;
 					}
 					// Can move up-right
-					else if (p.column < 7 && board[p.row - 1][p.column + 1] == empty)
+					if (p.column < 7 && board[p.row - 1][p.column + 1] == empty)
 					{
 						l.push_back(p);
+						continue;
 					}
 				}
 			}
@@ -267,11 +278,13 @@ std::vector<piece> canMove(int player)
 					if (p.column > 0 && board[p.row + 1][p.column - 1] == empty)
 					{
 						l.push_back(p);
+						continue;
 					}
 					// Can move down-right
-					else if (p.column < 7 && board[p.row + 1][p.column + 1] == empty)
+					if (p.column < 7 && board[p.row + 1][p.column + 1] == empty)
 					{
 						l.push_back(p);
+						continue;
 					}
 				}
 			}
@@ -291,7 +304,7 @@ std::vector<piece> canMove(int player)
 						break;
 					}
 					// Can move up-right
-					else if (p.column + i <= 7 && board[p.row - i][p.column + i] == empty)
+					if (p.column + i <= 7 && board[p.row - i][p.column + i] == empty)
 					{
 						l.push_back(p);
 						break;
@@ -306,7 +319,7 @@ std::vector<piece> canMove(int player)
 						break;
 					}
 					// Can move up-right
-					else if (p.column + i <= 7 && board[p.row + i][p.column + i] == empty)
+					if (p.column + i <= 7 && board[p.row + i][p.column + i] == empty)
 					{
 						l.push_back(p);
 						break;
@@ -334,6 +347,8 @@ void clearSelection()
 				board[i][j] = black;
 			else if (board[i][j] == selectedBlackKing)
 				board[i][j] = blackKing;
+			else if (board[i][j] == moveTo)
+				board[i][j] = empty;
 		}
 }
 
@@ -535,7 +550,7 @@ std::vector<move> movesAvailable(int player, piece selected_piece, bool can_take
 						moves = movesHelperKingTake(selected_piece, opponent, opponentKing, moves, i, -1, -1);
 					}
 					// Enough space right
-					else if (selected_piece.column + i + 1 <= 7)
+					if (selected_piece.column + i + 1 <= 7)
 					{
 						// Can take up-right
 						moves = movesHelperKingTake(selected_piece, opponent, opponentKing, moves, i, +1, -1);
@@ -551,7 +566,7 @@ std::vector<move> movesAvailable(int player, piece selected_piece, bool can_take
 						moves = movesHelperKingTake(selected_piece, opponent, opponentKing, moves, i, -1, 1);
 					}
 					// Enough space right
-					else if (selected_piece.column + i + 1 <= 7)
+					if (selected_piece.column + i + 1 <= 7)
 					{
 						// Can take down-right
 						moves = movesHelperKingTake(selected_piece, opponent, opponentKing, moves, i, 1, 1);
@@ -604,6 +619,44 @@ std::vector<move> movesAvailable(int player, piece selected_piece, bool can_take
 		}
 	}
 	return moves;
+}
+
+
+
+// Executes the selected move
+void executeMove(move m, int player)
+{
+	for (piece &p : playerPieces[player == 1 ? 0 : 1])
+		if (p.row == m.startRow && p.column == m.startColumn)
+		{
+			// Updatet player pieces
+			p.row = m.endRow;
+			p.column = m.endColumn;
+			// Update board
+			board[m.startRow][m.startColumn] = empty;
+			if (p.king)
+				if (player == 1)
+					board[m.endRow][m.endColumn] = whiteKing;
+				else
+					board[m.endRow][m.endColumn] = blackKing;
+			else
+				if (player == 1)
+					board[m.endRow][m.endColumn] = white;
+				else
+					board[m.endRow][m.endColumn] = black;
+			break;
+		}
+	// If a piece is taken update opponents pieces and board
+	if (m.taken)
+	{
+		for (piece p : playerPieces[player == 1 ? 1 : 0])
+			if (p.row == m.takenRow && p.column == m.takenColumn)
+			{
+				playerPieces[player == 1 ? 1 : 0].remove(p);
+				break;
+			}
+		board[m.takenRow][m.takenColumn] = empty;
+	}
 }
 
 
@@ -664,6 +717,7 @@ int main()
 	c_for_e[selectedBlackKing] = 'B';
 	c_for_e[empty] = ' ';
 	c_for_e[unused] = 219;
+	c_for_e[moveTo] = 'X';
 
 	std::vector<piece> choices = std::vector<piece>();	// A list containing all pieces a player can move (updated each turn)
 	int player = 1;
@@ -691,8 +745,6 @@ int main()
 		// Cycle through selections until break is called
 		while (true)
 		{
-			// Get available moves
-			std::vector<move> moves = movesAvailable(player, choices[selected], can_take);
 
 			// Unselect previously selected piece
 			clearSelection();
@@ -715,8 +767,8 @@ int main()
 
 			// Select next piece
 			std::string tmp = "";
-			std::cout << "Press ENTER for next available move." << std::endl;
-			std::cout << "Press SPACE or 0 followed by ENTER to choose a piece." << std::endl;
+			std::cout << "Press ENTER for next available piece." << std::endl;
+			std::cout << "Press SPACE or 0 followed by ENTER to choose the selected piece." << std::endl;
 			std::cout << "Press s followed by ENTER to skip turn." << std::endl;
 			std::getline(std::cin, tmp);
 			if (tmp == "")
@@ -728,7 +780,60 @@ int main()
 			}
 			else if (tmp == " " || tmp == "0")
 			{
-				//select move
+				piece selectedPiece = choices[selected];
+				// Get available moves
+				std::vector<move> moves = movesAvailable(player, choices[selected], can_take);
+				// Cycle through available moves until break is called
+				selected = 0;
+				while (true)
+				{
+					// Show selection
+					clearSelection();
+					if (player == 1)
+					{
+						if (selectedPiece.king)
+							board[selectedPiece.row][selectedPiece.column] = selectedWhiteKing;
+						else
+							board[selectedPiece.row][selectedPiece.column] = selectedWhite;
+					}
+					else
+					{
+						if (selectedPiece.king)
+							board[selectedPiece.row][selectedPiece.column] = selectedBlackKing;
+						else
+							board[selectedPiece.row][selectedPiece.column] = selectedBlack;
+					}
+					board[moves[selected].endRow][moves[selected].endColumn] = moveTo;
+					printBoard();
+
+					// Select next move
+					std::string tmp = "";
+					std::cout << "Press ENTER for next available move." << std::endl;
+					std::cout << "Press SPACE or 0 followed by ENTER to choose the selected move." << std::endl;
+					std::cout << "Press s followed by ENTER to skip turn." << std::endl;
+					std::getline(std::cin, tmp);
+
+					if (tmp == "")
+					{
+						if (selected + 1 >= moves.size())
+							selected = 0;
+						else
+							selected++;
+					}
+					else if (tmp == " " || tmp == "0")
+					{
+						executeMove(moves[selected], player);
+						for (piece p : playerPieces[player == 1 ? 0 : 1])
+							if (p.row == moves[selected].endRow && p.column == moves[selected].endColumn)
+								selectedPiece = p;
+						break;
+					}
+					else if (tmp == "s")
+						break;
+					else
+						continue;
+				}
+				break;
 			}
 			else if (tmp == "s")
 				break;
@@ -736,14 +841,14 @@ int main()
 
 
 
-	//	std::cout << "End of debug loop. 0 to leave." << std::endl;
-	//	int wait;
-	//	std::cin >> wait;
-	//	if (wait == 0)
-	//		return 0;
+		//	std::cout << "End of debug loop. 0 to leave." << std::endl;
+		//	int wait;
+		//	std::cin >> wait;
+		//	if (wait == 0)
+		//		return 0;
 
 
-		// If the player takes the last opponents piece the player wins
+			// If the player takes the last opponents piece the player wins
 		if (playerPieces[player == 1 ? 1 : 0].size() == 0)
 		{
 			winner = player;
