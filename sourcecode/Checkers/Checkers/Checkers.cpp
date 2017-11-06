@@ -27,6 +27,7 @@ struct piece
 	int column;
 };
 
+// == operator for comaring piece structs
 bool operator ==(const piece & lhs, const piece & rhs)
 {
 	return std::tie(lhs.row, lhs.column, lhs.king) == std::tie(rhs.row, rhs.column, rhs.king);
@@ -796,6 +797,7 @@ int main()
 			// Select next piece
 			std::string tmp = "";
 			std::cout << "Press ENTER for next available piece." << std::endl;
+			std::cout << "Press + or # followed by ENTER for previous available piece." << std::endl;
 			std::cout << "Press SPACE or 0 followed by ENTER to choose the selected piece." << std::endl;
 			std::cout << "Press s followed by ENTER to skip turn." << std::endl;
 			std::getline(std::cin, tmp);
@@ -805,6 +807,13 @@ int main()
 					selected = 0;
 				else
 					selected++;
+			}
+			else if (tmp == "+" || tmp == "#")
+			{
+				if (selected - 1 < 0)
+					selected = choices.size() - 1;
+				else
+					selected--;
 			}
 			else if (tmp == " " || tmp == "0")
 			{
@@ -835,10 +844,11 @@ int main()
 					printBoard();
 
 					// Select next move
-					std::string tmp = "";
+					tmp = "";
 					std::cout << "Press ENTER for next available move." << std::endl;
+					std::cout << "Press + or # followed by ENTER for previous available move." << std::endl;
 					std::cout << "Press SPACE or 0 followed by ENTER to choose the selected move." << std::endl;
-					std::cout << "Press s followed by ENTER to skip turn." << std::endl;
+					std::cout << "Press C followed by ENTER to skip turn." << std::endl;
 					std::getline(std::cin, tmp);
 
 					if (tmp == "")
@@ -847,6 +857,13 @@ int main()
 							selected = 0;
 						else
 							selected++;
+					}
+					else if (tmp == "+" || tmp == "#")
+					{
+						if (selected - 1 < 0)
+							selected = choices.size() - 1;
+						else
+							selected--;
 					}
 					else if (tmp == " " || tmp == "0")
 					{
@@ -859,12 +876,13 @@ int main()
 							continue;
 						break;
 					}
-					else if (tmp == "s")
+					else if (tmp == "c")
 						break;
 					else
 						continue;
 				}
-				break;
+				if (tmp != "c" && tmp != "C")
+					break;
 			}
 			else if (tmp == "s")
 				break;
