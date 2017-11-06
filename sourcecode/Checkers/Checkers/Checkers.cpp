@@ -310,7 +310,7 @@ std::vector<piece> canMove(int player)
 						break;
 					}
 				}
-				else if (p.row + i >= 7)
+				if (p.row + i <= 7)
 				{
 					// Can move up-left
 					if (p.column - i >= 0 && board[p.row + i][p.column - i] == empty)
@@ -370,7 +370,7 @@ std::vector<move> movesHelperKingTake(piece selected_piece, int opponent, int op
 		m.takenRow = selected_piece.row + i * upDown;
 		m.takenColumn = selected_piece.column + i * leftRight;
 	//	moves.push_back(m);
-		for (int j = i + 1; j < 6; j++)
+		for (int j = i + 1; j < 8; j++)
 		{
 			bool enoughSpace = false;
 			// Enough space
@@ -709,30 +709,30 @@ int main()
 
 
 	// debug piece(s)
-	//{
-	//	board[4][3] = blackKing;
-	//	piece p;
-	//	p.row = 4;
-	//	p.column = 3;
-	//	p.king = true;
-	//	playerPieces[1].push_back(p);
-	//}
-	//{
-	//	board[1][4] = blackKing;
-	//	piece p;
-	//	p.row = 1;
-	//	p.column = 4;
-	//	p.king = true;
-	//	playerPieces[1].push_back(p);
-	//}
-	//{
-	//	board[0][3] = whiteKing;
-	//	piece p;
-	//	p.row = 0;
-	//	p.column = 3;
-	//	p.king = true;
-	//	playerPieces[0].push_back(p);
-	//}
+	/*{
+		board[4][3] = blackKing;
+		piece p;
+		p.row = 4;
+		p.column = 3;
+		p.king = true;
+		playerPieces[1].push_back(p);
+	}
+	{
+		board[1][4] = blackKing;
+		piece p;
+		p.row = 1;
+		p.column = 4;
+		p.king = true;
+		playerPieces[1].push_back(p);
+	}
+	{
+		board[0][3] = whiteKing;
+		piece p;
+		p.row = 0;
+		p.column = 3;
+		p.king = true;
+		playerPieces[0].push_back(p);
+	}*/
 
 	// Assign chars for enums
 	c_for_e[white] = 'w';
