@@ -27,12 +27,6 @@ struct piece
 	int column;
 };
 
-// == operator for comaring piece structs
-bool operator ==(const piece & lhs, const piece & rhs)
-{
-	return std::tie(lhs.row, lhs.column, lhs.king) == std::tie(rhs.row, rhs.column, rhs.king);
-}
-
 // Container for tracking moves
 struct move
 {
@@ -40,9 +34,9 @@ struct move
 	int startColumn;
 	int endRow;
 	int endColumn;
+	bool king;
 	bool taken;
-	int takenRow;
-	int takenColumn;
+	piece takenPiece;
 };
 
 space board[8][8];	// stores the current board configuration
@@ -51,7 +45,32 @@ bool player1;		// True for player, false for AI
 bool player2;		// True for player, false for AI
 std::list<piece> playerPieces[2];	// All the pieces that belong to players
 int winner;			// When a winner is determined this gets assigned to either 1 or 2
+std::deque<move> history;	// Contains all moves made in a game
+std::queue<move> redoQ;	// Contains all moves that have been undone
 
+
+
+
+// == operator for comaring piece structs
+bool operator ==(const piece & lhs, const piece & rhs)
+{
+	return std::tie(lhs.row, lhs.column, lhs.king) == std::tie(rhs.row, rhs.column, rhs.king);
+}
+
+
+
+// Finds a piece based on coordinates / If piece is not found returns a made up piece at 9, 9
+piece findPiece(int row, int col, int player)
+{
+	for (piece p : playerPieces[player - 1])
+		if (p.row == row && p.column == col)
+			return p;
+	piece p;
+	p.row = 9;
+	p.column = 9;
+	p.king = false;
+	return p;
+}
 
 
 
@@ -154,6 +173,7 @@ std::vector<piece> haveToMove(int player)
 					l.push_back(p);
 				}
 			}
+			// Enough space down
 			if (p.row < 6)
 			{
 				// Can take down-left
@@ -359,7 +379,8 @@ void clearSelection()
 std::vector<move> movesHelperKingTake(piece selected_piece, int opponent, int opponentKing, std::vector<move> moves, int iterator, int leftRight, int upDown)
 {
 	int i = iterator;
-	if (board[selected_piece.row + i * upDown][selected_piece.column + i * leftRight] == opponent || board[selected_piece.row + i * upDown][selected_piece.column + i * leftRight] == opponentKing
+	if ((board[selected_piece.row + i * upDown][selected_piece.column + i * leftRight] == opponent
+		|| board[selected_piece.row + i * upDown][selected_piece.column + i * leftRight] == opponentKing)
 		&& board[selected_piece.row + (i + 1) * upDown][selected_piece.column + (i + 1) * leftRight] == empty)
 	{
 		move m;
@@ -367,10 +388,9 @@ std::vector<move> movesHelperKingTake(piece selected_piece, int opponent, int op
 		m.startColumn = selected_piece.column;
 		m.endRow = selected_piece.row + (i + 1)  * upDown;
 		m.endColumn = selected_piece.column + (i + 1) * leftRight;
+		m.king = selected_piece.king;
 		m.taken = true;
-		m.takenRow = selected_piece.row + i * upDown;
-		m.takenColumn = selected_piece.column + i * leftRight;
-	//	moves.push_back(m);
+		m.takenPiece = findPiece(selected_piece.row + i * upDown, selected_piece.column + i * leftRight, opponent == white ? 1 : 2);
 		for (int j = i + 1; j < 8; j++)
 		{
 			bool enoughSpace = false;
@@ -434,6 +454,7 @@ std::vector<move> movesHelperKingMove(piece selected_piece, std::vector<move> mo
 			m.startColumn = selected_piece.column;
 			m.endRow = selected_piece.row + i * upDown;
 			m.endColumn = selected_piece.column + i * leftRight;
+			m.king = selected_piece.king;
 			m.taken = false;
 			moves.push_back(m);
 		}
@@ -471,9 +492,9 @@ std::vector<move> movesHelperTake(piece selected_piece, int opponent, int oppone
 		m.startColumn = selected_piece.column;
 		m.endRow = selected_piece.row + 2 * upDown;
 		m.endColumn = selected_piece.column + 2 * leftRight;
+		m.king = selected_piece.king;
 		m.taken = true;
-		m.takenRow = selected_piece.row + upDown;
-		m.takenColumn = selected_piece.column + leftRight;
+		m.takenPiece = findPiece(selected_piece.row + upDown, selected_piece.column + leftRight, opponent == white ? 1 : 2);
 		moves.push_back(m);
 	}
 	return moves;
@@ -506,6 +527,7 @@ std::vector<move> movesHelperMove(piece selected_piece, std::vector<move> moves,
 		m.startColumn = selected_piece.column;
 		m.endRow = selected_piece.row + upDown;
 		m.endColumn = selected_piece.column + leftRight;
+		m.king = selected_piece.king;
 		m.taken = false;
 		moves.push_back(m);
 	}
@@ -520,15 +542,21 @@ std::vector<move> movesAvailable(int player, piece selected_piece, bool can_take
 	std::vector<move> moves = std::vector<move>();
 	int opponent;
 	int opponentKing;
+	int own;
+	int ownKing;
 	if (player == 1)
 	{
 		opponent = black;
 		opponentKing = blackKing;
+		own = white;
+		ownKing = whiteKing;
 	}
 	else
 	{
 		opponent = white;
 		opponentKing = whiteKing;
+		own = black;
+		ownKing = blackKing;
 	}
 	// Multipliers that can be 1 or -1 for dealing with signs
 	int leftRight = 1;
@@ -536,6 +564,11 @@ std::vector<move> movesAvailable(int player, piece selected_piece, bool can_take
 	// Moves for a king piece
 	if (selected_piece.king)
 	{
+		// Blocked diagonals
+		bool upLeft = false;
+		bool upRight = false;
+		bool downLeft = false;
+		bool downRight = false;
 		// Moves for a king piece that can take
 		if (can_take)
 		{
@@ -545,32 +578,56 @@ std::vector<move> movesAvailable(int player, piece selected_piece, bool can_take
 				if (selected_piece.row - i - 1 >= 0)
 				{
 					// Enough space left
-					if (selected_piece.column - i - 1 >= 0)
+					if (selected_piece.column - i - 1 >= 0 && !upLeft)
 					{
-						// Can take up-left
-						moves = movesHelperKingTake(selected_piece, opponent, opponentKing, moves, i, -1, -1);
+						if (board[selected_piece.row - i - 1][selected_piece.column - i - 1] == own
+							|| board[selected_piece.row - i - 1][selected_piece.column - i - 1] == ownKing
+							|| (board[selected_piece.row - i][selected_piece.column - i] != empty
+								&& board[selected_piece.row - i - 1][selected_piece.column - i - 1] != empty))
+							upLeft = true;
+						else
+							// Can take up-left
+							moves = movesHelperKingTake(selected_piece, opponent, opponentKing, moves, i, -1, -1);
 					}
 					// Enough space right
-					if (selected_piece.column + i + 1 <= 7)
+					if (selected_piece.column + i + 1 <= 7 && !upRight)
 					{
-						// Can take up-right
-						moves = movesHelperKingTake(selected_piece, opponent, opponentKing, moves, i, +1, -1);
+						if (board[selected_piece.row - i - 1][selected_piece.column + i + 1] == own
+							|| board[selected_piece.row - i - 1][selected_piece.column + i + 1] == ownKing
+							|| (board[selected_piece.row - i][selected_piece.column + i] != empty
+								&& board[selected_piece.row - i - 1][selected_piece.column + i + 1] != empty))
+							upRight = true;
+						else
+							// Can take up-right
+							moves = movesHelperKingTake(selected_piece, opponent, opponentKing, moves, i, +1, -1);
 					}
 				}
 				// Enough space down
 				if (selected_piece.row + i + 1 <= 7)
 				{
 					// Enough space left
-					if (selected_piece.column - i - 1 >= 0)
+					if (selected_piece.column - i - 1 >= 0 && !downLeft)
 					{
-						// Can take down-left
-						moves = movesHelperKingTake(selected_piece, opponent, opponentKing, moves, i, -1, 1);
+						if (board[selected_piece.row + i + 1][selected_piece.column - i - 1] == own
+							|| board[selected_piece.row + i + 1][selected_piece.column - i - 1] == ownKing
+							|| (board[selected_piece.row + i][selected_piece.column - i] != empty
+								&& board[selected_piece.row + i + 1][selected_piece.column - i - 1] != empty))
+							downLeft = true;
+						else
+							// Can take down-left
+							moves = movesHelperKingTake(selected_piece, opponent, opponentKing, moves, i, -1, 1);
 					}
 					// Enough space right
-					if (selected_piece.column + i + 1 <= 7)
+					if (selected_piece.column + i + 1 <= 7 && !downRight)
 					{
-						// Can take down-right
-						moves = movesHelperKingTake(selected_piece, opponent, opponentKing, moves, i, 1, 1);
+						if (board[selected_piece.row + i + 1][selected_piece.column + i + 1] == own
+							|| board[selected_piece.row + i + 1][selected_piece.column + i + 1] == ownKing
+							|| (board[selected_piece.row + i][selected_piece.column + i] != empty
+								&& board[selected_piece.row + i + 1][selected_piece.column + i + 1] != empty))
+							downRight = true;
+						else
+							// Can take down-right
+							moves = movesHelperKingTake(selected_piece, opponent, opponentKing, moves, i, 1, 1);
 					}
 				}
 			}
@@ -627,6 +684,7 @@ std::vector<move> movesAvailable(int player, piece selected_piece, bool can_take
 // Executes the selected move
 void executeMove(move m, int player)
 {
+	history.push_back(m);
 	for (piece &p : playerPieces[player == 1 ? 0 : 1])
 		if (p.row == m.startRow && p.column == m.startColumn)
 		{
@@ -663,12 +721,92 @@ void executeMove(move m, int player)
 	if (m.taken)
 	{
 		for (piece p : playerPieces[player == 1 ? 1 : 0])
-			if (p.row == m.takenRow && p.column == m.takenColumn)
+			if (p.row == m.takenPiece.row && p.column == m.takenPiece.column)
 			{
 				playerPieces[player == 1 ? 1 : 0].remove(p);
 				break;
 			}
-		board[m.takenRow][m.takenColumn] = empty;
+		board[m.takenPiece.row][m.takenPiece.column] = empty;
+	}
+}
+
+
+
+// Removes invalid moves when extra takes are available
+std::vector<move> validateKingTake(std::vector<move> moves, int player)
+{
+	std::vector<move> movesWithTakes = std::vector<move>();
+	std::vector<move> movesValidated = std::vector<move>();
+	std::vector<std::pair<int, int>> takenVal = std::vector<std::pair<int, int>>();
+
+	for (move m : moves)
+	{
+		piece p;
+		p.row = m.endRow;
+		p.column = m.endColumn;
+		space temp = board[m.takenPiece.row][m.takenPiece.column];
+		board[m.takenPiece.row][m.takenPiece.column] = player == 1 ? white : black;
+		std::vector<move> takingMoves = movesAvailable(player, p, true);
+		if (takingMoves.size() > 0)
+			movesWithTakes.push_back(m);
+		board[m.takenPiece.row][m.takenPiece.column] = temp;
+	}
+	for (move m : movesWithTakes)
+		movesValidated.push_back(m);
+	for (move m : moves)
+	{
+		bool in = false;
+		for (move mwt : movesWithTakes)
+			if (m.takenPiece.row == mwt.takenPiece.row && m.takenPiece.column == mwt.takenPiece.column)
+				in = true;
+		if (!in)
+			movesValidated.push_back(m);
+	}
+	return movesValidated;
+}
+
+
+
+// Undoes a move
+void undo(int player)
+{
+	bool samePlayer = true;
+	while (true)
+	{
+		if (history.size() == 0)
+			break;
+		move m = history.back();
+		space s = board[m.endRow][m.endColumn];
+		if (((s == white || s == whiteKing) && player == 1) || ((s == black || s == blackKing) && player == 2))
+			//samePlayer = false;
+			break;
+		// Move the 'move' to redo queue
+		redoQ.push(m);
+		history.pop_back();
+		// If kinged this turn make the piece not a king
+		if (s == whiteKing && !m.king)
+			s = white;
+		else if (s == blackKing && !m.king)
+			s = black;
+		// Update board
+		board[m.endRow][m.endColumn] = empty;
+		board[m.startRow][m.startColumn] = s;
+		for (piece &p : playerPieces[player == 2 ? 0 : 1])
+			if (m.endRow == p.row && m.endColumn == p.column)
+			{
+				p.row = m.startRow;
+				p.column = m.startColumn;
+				p.king = m.king;
+			}
+		// Return piece to the piece list if it was taken
+		if (m.taken)
+		{
+			playerPieces[player == 1 ? 0 : 1].push_back(m.takenPiece);
+			if (m.takenPiece.king)
+				board[m.takenPiece.row][m.takenPiece.column] = player == 2 ? blackKing : whiteKing;
+			else
+				board[m.takenPiece.row][m.takenPiece.column] = player == 2 ? black : white;
+		}
 	}
 }
 
@@ -680,6 +818,8 @@ int main()
 {
 	playerPieces[0] = std::list<piece>();;
 	playerPieces[1] = std::list<piece>();;
+	history = std::deque<move>();
+	redoQ = std::queue<move>();
 	// Initialize the board
 	for (int i = 0; i < 8; i++)
 		for (int j = 0; j < 8; j++)
@@ -711,6 +851,14 @@ int main()
 
 	// debug piece(s)
 	/*{
+		board[1][4] = blackKing;
+		piece p;
+		p.row = 1;
+		p.column = 4;
+		p.king = true;
+		playerPieces[1].push_back(p);
+	}
+	{
 		board[4][3] = blackKing;
 		piece p;
 		p.row = 4;
@@ -719,10 +867,10 @@ int main()
 		playerPieces[1].push_back(p);
 	}
 	{
-		board[1][4] = blackKing;
+		board[4][1] = blackKing;
 		piece p;
-		p.row = 1;
-		p.column = 4;
+		p.row = 4;
+		p.column = 1;
 		p.king = true;
 		playerPieces[1].push_back(p);
 	}
@@ -755,7 +903,7 @@ int main()
 	// Game loop
 	while (playerPieces[0].size() > 0 && playerPieces[1].size() > 0)
 	{
-		printBoard();
+		// Get pieces that can move
 		choices = haveToMove(player);
 		can_take = true;
 		if (choices.size() == 0)
@@ -771,10 +919,9 @@ int main()
 		}
 
 		selected = 0;
-		// Cycle through selections until break is called
+		// Cycle through selections until a piece is selected
 		while (true)
 		{
-
 			// Unselect previously selected piece
 			clearSelection();
 			// Show selection
@@ -798,9 +945,14 @@ int main()
 			std::string tmp = "";
 			std::cout << "Press ENTER for next available piece." << std::endl;
 			std::cout << "Press + or # followed by ENTER for previous available piece." << std::endl;
+			if (history.size() > 0)
+				std::cout << "Press U to undo a move." << std::endl;
 			std::cout << "Press SPACE or 0 followed by ENTER to choose the selected piece." << std::endl;
-			std::cout << "Press s followed by ENTER to skip turn." << std::endl;
+
+			std::cout << history.size() << std::endl;
+
 			std::getline(std::cin, tmp);
+			// Next piece
 			if (tmp == "")
 			{
 				if (selected + 1 >= choices.size())
@@ -808,6 +960,7 @@ int main()
 				else
 					selected++;
 			}
+			// Previous piece
 			else if (tmp == "+" || tmp == "#")
 			{
 				if (selected - 1 < 0)
@@ -815,15 +968,26 @@ int main()
 				else
 					selected--;
 			}
+			// Undo
+			else if (tmp == "u" || tmp == "U")
+			{
+				clearSelection();
+				undo(player);
+				break;
+			}
+			// Select piece
 			else if (tmp == " " || tmp == "0")
 			{
 				piece selectedPiece = choices[selected];
-				// Get available moves
 				std::vector<move> moves = movesAvailable(player, selectedPiece, can_take);
-				// Cycle through available moves until break is called
+
+				// Cycle through available moves until a move is selected
 				selected = 0;
 				while (true)
 				{
+					// Validation for king pieces that can take and may be able to take after the first take
+					if (selectedPiece.king && can_take)
+						moves = validateKingTake(moves, player);
 					// Show selection
 					clearSelection();
 					if (player == 1)
@@ -848,9 +1012,10 @@ int main()
 					std::cout << "Press ENTER for next available move." << std::endl;
 					std::cout << "Press + or # followed by ENTER for previous available move." << std::endl;
 					std::cout << "Press SPACE or 0 followed by ENTER to choose the selected move." << std::endl;
-					std::cout << "Press C followed by ENTER to skip turn." << std::endl;
+					std::cout << "Press C followed by ENTER to cancel selection." << std::endl;
 					std::getline(std::cin, tmp);
 
+					// Next move
 					if (tmp == "")
 					{
 						if (selected + 1 >= moves.size())
@@ -858,46 +1023,43 @@ int main()
 						else
 							selected++;
 					}
+					// Previous move
 					else if (tmp == "+" || tmp == "#")
 					{
 						if (selected - 1 < 0)
-							selected = choices.size() - 1;
+							selected = moves.size() - 1;
 						else
 							selected--;
 					}
+					// Move selected
 					else if (tmp == " " || tmp == "0")
 					{
+						//	history.push_back(moves[selected]);
 						executeMove(moves[selected], player);
 						for (piece p : playerPieces[player == 1 ? 0 : 1])
 							if (p.row == moves[selected].endRow && p.column == moves[selected].endColumn)
 								selectedPiece = p;
 						moves = movesAvailable(player, selectedPiece, true);
 						if (moves.size() > 0 && can_take)
+						{
+							selected = 0;
 							continue;
+						}
 						break;
 					}
-					else if (tmp == "c")
+					// Cancel piece selection
+					else if (tmp == "c" && tmp != "C")
 						break;
+					// Any other button pressed
 					else
 						continue;
 				}
 				if (tmp != "c" && tmp != "C")
 					break;
 			}
-			else if (tmp == "s")
-				break;
 		}
 
-
-
-		//	std::cout << "End of debug loop. 0 to leave." << std::endl;
-		//	int wait;
-		//	std::cin >> wait;
-		//	if (wait == 0)
-		//		return 0;
-
-
-			// If the player takes the last opponents piece the player wins
+		// If the player takes the last opponents piece the player wins
 		if (playerPieces[player == 1 ? 1 : 0].size() == 0)
 		{
 			winner = player;

@@ -11,6 +11,8 @@
 #include <tchar.h>
 #include <list>
 #include <vector>
+#include <deque>
+#include <queue>
 #include <string>
 #include <tuple>
 #include <iostream>
