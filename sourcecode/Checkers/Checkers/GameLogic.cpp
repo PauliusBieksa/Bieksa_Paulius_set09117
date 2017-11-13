@@ -10,6 +10,7 @@ bool operator ==(const piece & lhs, const piece & rhs)
 }
 
 
+// Constructor initializes the board sets up starting variables
 GameLogic::GameLogic()
 {
 	playerPieces[0] = std::list<piece>();;
@@ -45,31 +46,30 @@ GameLogic::GameLogic()
 		}
 
 	// Debug pieces
-	//{
-	//	board[0][1] = whiteKing;
-	//	piece p;
-	//	p.row = 0;
-	//	p.column = 1;
-	//	p.king = true;
-	//	playerPieces[0].push_back(p);
-	//}
-	//{
-	//	board[3][4] = black;
-	//	piece p;
-	//	p.row = 3;
-	//	p.column = 4;
-	//	p.king = false;
-	//	playerPieces[1].push_back(p);
-	//}
-	//{
-	//	board[4][5] = blackKing;
-	//	piece p;
-	//	p.row = 4;
-	//	p.column = 5;
-	//	p.king = true;
-	//	playerPieces[1].push_back(p);
-	//}
-
+	/*{
+		board[2][3] = whiteKing;
+		piece p;
+		p.row = 2;
+		p.column = 3;
+		p.king = true;
+		playerPieces[0].push_back(p);
+	}
+	{
+		board[3][4] = black;
+		piece p;
+		p.row = 3;
+		p.column = 4;
+		p.king = false;
+		playerPieces[1].push_back(p);
+	}
+	{
+		board[1][2] = blackKing;
+		piece p;
+		p.row = 1;
+		p.column = 2;
+		p.king = true;
+		playerPieces[1].push_back(p);
+	}*/
 
 	player = 1;
 	updatePieceChoices();
@@ -101,12 +101,9 @@ piece GameLogic::findPiece(int row, int col, int player)
 std::vector<piece> GameLogic::haveToMove(int player)
 {
 	std::vector<piece> ch = std::vector<piece>();
-	// Find all mandatory moves
 	for (piece p : playerPieces[player - 1])
-	{
 		if (movesAvailable(player, p, true).size() > 0)
 			ch.push_back(p);
-	}
 	return ch;
 }
 
@@ -117,10 +114,8 @@ std::vector<piece> GameLogic::canMove(int player)
 {
 	std::vector<piece> ch = std::vector<piece>();
 	for (piece p : playerPieces[player - 1])
-	{
 		if (movesAvailable(player, p, false).size() > 0)
 			ch.push_back(p);
-	}
 	return ch;
 }
 
@@ -166,7 +161,7 @@ std::vector<move> GameLogic::movesHelperKingTake(piece selected_piece, int oppon
 		for (int j = i + 1; j < 8; j++)
 		{
 			bool enoughSpace = false;
-			// Enough space
+			// Checks whether the move would end beyond the board
 			if (upDown < 0 && selected_piece.row - j >= 0)
 			{
 				if (leftRight < 0 && selected_piece.column - j >= 0)
@@ -203,7 +198,7 @@ std::vector<move> GameLogic::movesHelperKingMove(piece selected_piece, std::vect
 {
 	int i = iterator;
 	bool enoughSpace = false;
-	// Enough space
+	// Checks whether the move would end beyond the board
 	if (upDown < 0 && selected_piece.row - i >= 0)
 	{
 		if (leftRight < 0 && selected_piece.column - i >= 0)
@@ -240,7 +235,7 @@ std::vector<move> GameLogic::movesHelperKingMove(piece selected_piece, std::vect
 std::vector<move> GameLogic::movesHelperTake(piece selected_piece, int opponent, int opponentKing, std::vector<move> mv, int leftRight, int upDown)
 {
 	bool enoughSpace = false;
-	// Enough space
+	// Checks whether the move would end beyond the board
 	if (upDown < 0 && selected_piece.row - 2 >= 0)
 	{
 		if (leftRight < 0 && selected_piece.column - 2 >= 0)
@@ -279,7 +274,7 @@ std::vector<move> GameLogic::movesHelperTake(piece selected_piece, int opponent,
 std::vector<move> GameLogic::movesHelperMove(piece selected_piece, std::vector<move> mv, int leftRight, int upDown)
 {
 	bool enoughSpace = false;
-	// Enough space
+	// Checks whether the move would end beyond the board
 	if (upDown < 0 && selected_piece.row - 1 >= 0)
 	{
 		if (leftRight < 0 && selected_piece.column - 1 >= 0)
@@ -593,20 +588,22 @@ std::vector<move> GameLogic::validateKingTake(std::vector<move> mv, int player)
 	std::vector<move> movesValidated = std::vector<move>();
 	std::vector<std::pair<int, int>> takenVal = std::vector<std::pair<int, int>>();
 
+	// Gets all moves that can take after taking
 	for (move m : mv)
 	{
 		piece p;
 		p.row = m.endRow;
 		p.column = m.endColumn;
 		space temp = board[m.takenPiece.row][m.takenPiece.column];
-		board[m.takenPiece.row][m.takenPiece.column] = player == 1 ? white : black;
-		std::vector<move> takingMoves = movesAvailable(player, p, true);
-		if (takingMoves.size() > 0)
+		board[m.takenPiece.row][m.takenPiece.column] = empty;
+		if (movesAvailable(player, p, true).size() > 0)
 			movesWithTakes.push_back(m);
 		board[m.takenPiece.row][m.takenPiece.column] = temp;
 	}
+	// All moves in movesWithTaking are valid
 	for (move m : movesWithTakes)
 		movesValidated.push_back(m);
+	// Add all moves that that have no additional takes but are still valid
 	for (move m : mv)
 	{
 		bool in = false;

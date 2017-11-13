@@ -47,42 +47,29 @@ public:
 	GameLogic();
 	~GameLogic();
 
-
-	// Returns a list of pieces which can take another piece (therefore player has to move one of them)
-	std::vector<piece> haveToMove(int player);
-	// Returns a list of pieces which can move, but not take
-	std::vector<piece> canMove(int player);
-	// Returns all available moves for one piece
-	std::vector<move> movesAvailable(int player, piece selected_piece, bool can_take);
 	// Executes the selected move
 	int executeMove();
 	// Undoes a move
 	void undo();
 
-
-
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+	// Increments piece selection index
 	void nextPiece();
+	// Decrements piece selection index
 	void prevPiece();
-
+	// Increments move selection index
 	void nextMove();
+	// Decrements move selection index
 	void prevMove();
-
+	// Sets up available moves and returns selected piece
 	void selectPiece();
 
-
-
+	// Getters
 	int getPlayer() { return player; }
 	std::array<std::array<space, 8>, 8> getBoard() { return board; }
 	std::deque<move> getHistory() { return history; }
 	std::queue<move> getRedoQueue() { return redoQ; }
 
-
 private:
-
-	//space board[8][8];	// stores the current board configuration
 	std::array<std::array<space, 8>, 8> board;	// stores the current board configuration
 	std::list<piece> playerPieces[2];	// All the pieces that belong to players
 	int winner = 0;			// When a winner is determined this gets assigned to either 1 or 2
@@ -101,27 +88,26 @@ private:
 	std::vector<move> movesHelperTake(piece selected_piece, int opponent, int opponentKing, std::vector<move> moves, int leftRight, int upDown);
 	// Part of movesAvailble method to reduce ammount of code / Returns all available non-taking moves for a selected non-king
 	std::vector<move> movesHelperMove(piece selected_piece, std::vector<move> moves, int leftRight, int upDown);
+	// Returns all available moves for one piece
+	std::vector<move> movesAvailable(int player, piece selected_piece, bool can_take);
 	// Removes invalid moves when extra takes are available
 	std::vector<move> validateKingTake(std::vector<move> moves, int player);
-
-
-
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	std::vector<piece> choices;
-	std::vector<move> moves;
-	int player;
-	bool can_take;
-	int selectedPiece;
-	int selectedMove;
-
-
-
+	// Returns a list of pieces which can take another piece (therefore player has to move one of them)
+	std::vector<piece> haveToMove(int player);
+	// Returns a list of pieces which can move, but not take
+	std::vector<piece> canMove(int player);
+	// Recreates the choices vector
 	void updatePieceChoices();
-
-
+	// Changes the indicated piece on the board to selected
 	void showSelectedPiece();
-
-
+	// Calls showSelectedPiece and changes the end coordinate of selected move to the moveTo enum
 	void showSelectedMove();
 
+	// Internal state variables
+	std::vector<piece> choices;	// Pieces the player can choose from
+	std::vector<move> moves;	// Moves the player can choose from
+	int player;					// Active player
+	bool can_take;				// Whether the selected piece can take or not
+	int selectedPiece;			// Piece selection iterator
+	int selectedMove;			// Move selection iterator
 };
