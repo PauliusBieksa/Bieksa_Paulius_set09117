@@ -49,8 +49,12 @@ public:
 
 	// Executes the selected move
 	int executeMove();
+	// Executes given move
+	int executeMove(move m);
 	// Undoes a move
 	void undo();
+	// Redoes a move
+	void redo();
 
 	// Increments piece selection index
 	void nextPiece();
@@ -67,14 +71,14 @@ public:
 	int getPlayer() { return player; }
 	std::array<std::array<space, 8>, 8> getBoard() { return board; }
 	std::deque<move> getHistory() { return history; }
-	std::queue<move> getRedoQueue() { return redoQ; }
+	std::stack<move> getRedoStack() { return redoStack; }
 
 private:
 	std::array<std::array<space, 8>, 8> board;	// stores the current board configuration
 	std::list<piece> playerPieces[2];	// All the pieces that belong to players
 	int winner = 0;			// When a winner is determined this gets assigned to either 1 or 2
 	std::deque<move> history;	// Contains all moves made in a game
-	std::queue<move> redoQ;	// Contains all moves that have been undone
+	std::stack<move> redoStack;	// Contains all moves that have been undone
 
 	// Finds a piece based on coordinates / If piece is not found returns a made up piece at 9, 9
 	piece findPiece(int row, int col, int player);

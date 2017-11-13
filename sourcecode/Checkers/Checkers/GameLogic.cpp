@@ -16,7 +16,7 @@ GameLogic::GameLogic()
 	playerPieces[0] = std::list<piece>();;
 	playerPieces[1] = std::list<piece>();;
 	history = std::deque<move>();
-	redoQ = std::queue<move>();
+	redoStack = std::stack<move>();
 	// Initialize the board
 	for (int i = 0; i < 8; i++)
 		for (int j = 0; j < 8; j++)
@@ -362,7 +362,7 @@ std::vector<move> GameLogic::movesAvailable(int player, piece selected_piece, bo
 							if (tmp < mv.size())
 								upLeft = true;
 						}
-						
+
 					}
 					// Enough space right
 					if (selected_piece.column + i + 1 <= 7 && !upRight)
@@ -495,10 +495,55 @@ std::vector<move> GameLogic::movesAvailable(int player, piece selected_piece, bo
 
 
 
-// Executes the selected move // Returns -1 if more moves available, 0 if game is not over, returns winner otherwise
+// Removes invalid moves when extra takes are available
+std::vector<move> GameLogic::validateKingTake(std::vector<move> mv, int player)
+{
+	std::vector<move> movesWithTakes = std::vector<move>();
+	std::vector<move> movesValidated = std::vector<move>();
+	std::vector<std::pair<int, int>> takenVal = std::vector<std::pair<int, int>>();
+
+	// Gets all moves that can take after taking
+	for (move m : mv)
+	{
+		piece p;
+		p.row = m.endRow;
+		p.column = m.endColumn;
+		space temp = board[m.takenPiece.row][m.takenPiece.column];
+		board[m.takenPiece.row][m.takenPiece.column] = empty;
+		if (movesAvailable(player, p, true).size() > 0)
+			movesWithTakes.push_back(m);
+		board[m.takenPiece.row][m.takenPiece.column] = temp;
+	}
+	// All moves in movesWithTaking are valid
+	for (move m : movesWithTakes)
+		movesValidated.push_back(m);
+	// Add all moves that that have no additional takes but are still valid
+	for (move m : mv)
+	{
+		bool in = false;
+		for (move mwt : movesWithTakes)
+			if (m.takenPiece.row == mwt.takenPiece.row && m.takenPiece.column == mwt.takenPiece.column)
+				in = true;
+		if (!in)
+			movesValidated.push_back(m);
+	}
+	return movesValidated;
+}
+
+
+
+// Executes given move
 int GameLogic::executeMove()
 {
 	move m = moves[selectedMove];
+	return executeMove(m);
+}
+
+
+
+// Executes the selected move // Returns -1 if more moves available, 0 if game is not over, returns winner otherwise
+int GameLogic::executeMove(move m)
+{
 	history.push_back(m);
 	for (piece &p : playerPieces[player == 1 ? 0 : 1])
 		if (p.row == m.startRow && p.column == m.startColumn)
@@ -543,10 +588,10 @@ int GameLogic::executeMove()
 			}
 		board[m.takenPiece.row][m.takenPiece.column] = empty;
 	}
-	//
+	
 	piece tmp;
 	for (piece p : playerPieces[player == 1 ? 0 : 1])
-		if (p.row == moves[selectedMove].endRow && p.column == moves[selectedMove].endColumn)
+		if (p.row == m.endRow && p.column == m.endColumn)
 			tmp = p;
 	moves = movesAvailable(player, tmp, true);
 	if (moves.size() > 0 && can_take)
@@ -581,57 +626,20 @@ int GameLogic::executeMove()
 
 
 
-// Removes invalid moves when extra takes are available
-std::vector<move> GameLogic::validateKingTake(std::vector<move> mv, int player)
-{
-	std::vector<move> movesWithTakes = std::vector<move>();
-	std::vector<move> movesValidated = std::vector<move>();
-	std::vector<std::pair<int, int>> takenVal = std::vector<std::pair<int, int>>();
-
-	// Gets all moves that can take after taking
-	for (move m : mv)
-	{
-		piece p;
-		p.row = m.endRow;
-		p.column = m.endColumn;
-		space temp = board[m.takenPiece.row][m.takenPiece.column];
-		board[m.takenPiece.row][m.takenPiece.column] = empty;
-		if (movesAvailable(player, p, true).size() > 0)
-			movesWithTakes.push_back(m);
-		board[m.takenPiece.row][m.takenPiece.column] = temp;
-	}
-	// All moves in movesWithTaking are valid
-	for (move m : movesWithTakes)
-		movesValidated.push_back(m);
-	// Add all moves that that have no additional takes but are still valid
-	for (move m : mv)
-	{
-		bool in = false;
-		for (move mwt : movesWithTakes)
-			if (m.takenPiece.row == mwt.takenPiece.row && m.takenPiece.column == mwt.takenPiece.column)
-				in = true;
-		if (!in)
-			movesValidated.push_back(m);
-	}
-	return movesValidated;
-}
-
-
-
 // Undoes a move
 void GameLogic::undo()
 {
+	if (history.size() == 0)
+		return;
 	clearSelection();
-	while (true)
+	while (history.size() > 0)
 	{
-		if (history.size() == 0)
-			break;
 		move m = history.back();
 		space s = board[m.endRow][m.endColumn];
 		if (((s == white || s == whiteKing) && player == 1) || ((s == black || s == blackKing) && player == 2))
 			break;
-		// Move the 'move' to redo queue
-		redoQ.push(m);
+		// Move the 'move' to redo stack
+		redoStack.push(m);
 		history.pop_back();
 		// If kinged this turn make the piece not a king
 		if (s == whiteKing && !m.king)
@@ -656,6 +664,60 @@ void GameLogic::undo()
 				board[m.takenPiece.row][m.takenPiece.column] = player == 2 ? blackKing : whiteKing;
 			else
 				board[m.takenPiece.row][m.takenPiece.column] = player == 2 ? black : white;
+		}
+	}
+	player = player == 1 ? 2 : 1;
+	updatePieceChoices();
+}
+
+
+
+// Redoes a move
+void GameLogic::redo()
+{
+	if (redoStack.size() == 0)
+		return;
+	clearSelection();
+	while (redoStack.size() > 0)
+	{
+		move m = redoStack.top();
+		space s = board[m.startRow][m.startColumn];
+		if (((s == white || s == whiteKing) && player == 2) || ((s == black || s == blackKing) && player == 1))
+			break;
+		// Move the 'move' to history
+		history.push_back(m);
+		redoStack.pop();
+		// Make piece king if required
+		if (s == white && m.endRow == 0)
+		{
+			s = whiteKing;
+			m.king = true;
+		}
+		else if (s == black && m.endRow == 7)
+		{
+			s = blackKing;
+			m.king = true;
+		}
+		// Update board
+		board[m.startRow][m.startColumn] = empty;
+		board[m.endRow][m.endColumn] = s;
+		for (piece &p : playerPieces[player == 2 ? 1 : 0])
+			if (m.startRow == p.row && m.startColumn == p.column)
+			{
+				p.row = m.endRow;
+				p.column = m.endColumn;
+				p.king = m.king;
+			}
+		// Remove piece if one was taken
+		if (m.taken)
+		{
+			for (piece p : playerPieces[player == 1 ? 1 : 0])
+				if (p.row == m.takenPiece.row && p.column == m.takenPiece.column)
+				{
+					playerPieces[player == 1 ? 1 : 0].remove(p);
+					break;
+				}
+			board[m.takenPiece.row][m.takenPiece.column] = empty;
 		}
 	}
 	player = player == 1 ? 2 : 1;
