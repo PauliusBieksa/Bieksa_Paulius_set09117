@@ -98,11 +98,11 @@ piece GameLogic::findPiece(int row, int col, int player)
 
 
 // Returns a list of pieces which can take another piece (therefore player has to move one of them)
-std::vector<piece> GameLogic::haveToMove(int player)
+std::vector<piece> GameLogic::haveToMove()
 {
 	std::vector<piece> ch = std::vector<piece>();
 	for (piece p : playerPieces[player - 1])
-		if (movesAvailable(player, p, true).size() > 0)
+		if (movesAvailable(p, true).size() > 0)
 			ch.push_back(p);
 	return ch;
 }
@@ -110,11 +110,11 @@ std::vector<piece> GameLogic::haveToMove(int player)
 
 
 // Returns a list of pieces which can move, but not take
-std::vector<piece> GameLogic::canMove(int player)
+std::vector<piece> GameLogic::canMove()
 {
 	std::vector<piece> ch = std::vector<piece>();
 	for (piece p : playerPieces[player - 1])
-		if (movesAvailable(player, p, false).size() > 0)
+		if (movesAvailable(p, false).size() > 0)
 			ch.push_back(p);
 	return ch;
 }
@@ -305,7 +305,7 @@ std::vector<move> GameLogic::movesHelperMove(piece selected_piece, std::vector<m
 
 
 // Returns all available moves for one piece
-std::vector<move> GameLogic::movesAvailable(int player, piece selected_piece, bool can_take)
+std::vector<move> GameLogic::movesAvailable(piece selected_piece, bool can_take)
 {
 	std::vector<move> mv = std::vector<move>();
 	int opponent;
@@ -496,7 +496,7 @@ std::vector<move> GameLogic::movesAvailable(int player, piece selected_piece, bo
 
 
 // Removes invalid moves when extra takes are available
-std::vector<move> GameLogic::validateKingTake(std::vector<move> mv, int player)
+std::vector<move> GameLogic::validateKingTake(std::vector<move> mv)
 {
 	std::vector<move> movesWithTakes = std::vector<move>();
 	std::vector<move> movesValidated = std::vector<move>();
@@ -510,7 +510,7 @@ std::vector<move> GameLogic::validateKingTake(std::vector<move> mv, int player)
 		p.column = m.endColumn;
 		space temp = board[m.takenPiece.row][m.takenPiece.column];
 		board[m.takenPiece.row][m.takenPiece.column] = empty;
-		if (movesAvailable(player, p, true).size() > 0)
+		if (movesAvailable(p, true).size() > 0)
 			movesWithTakes.push_back(m);
 		board[m.takenPiece.row][m.takenPiece.column] = temp;
 	}
@@ -589,11 +589,14 @@ int GameLogic::executeMove(move m)
 		board[m.takenPiece.row][m.takenPiece.column] = empty;
 	}
 	
+
+
+
 	piece tmp;
 	for (piece p : playerPieces[player == 1 ? 0 : 1])
 		if (p.row == m.endRow && p.column == m.endColumn)
 			tmp = p;
-	moves = movesAvailable(player, tmp, true);
+	moves = movesAvailable(tmp, true);
 	if (moves.size() > 0 && can_take)
 	{
 		updatePieceChoices();
@@ -730,12 +733,12 @@ void GameLogic::redo()
 void GameLogic::updatePieceChoices()
 {
 	// Get pieces that can move
-	choices = haveToMove(player);
+	choices = haveToMove();
 	can_take = true;
 	if (choices.size() == 0)
 	{
 		can_take = false;
-		choices = canMove(player);
+		choices = canMove();
 	}
 	selectedPiece = 0;
 	showSelectedPiece();
@@ -793,11 +796,11 @@ void GameLogic::prevPiece()
 // Sets up available moves and returns selected piece
 void GameLogic::selectPiece()
 {
-	moves = movesAvailable(player, choices[selectedPiece], can_take);
+	moves = movesAvailable(choices[selectedPiece], can_take);
 
 	// Validation for king pieces that can take and may be able to take after the first take
 	if (choices[selectedPiece].king && can_take)
-		moves = validateKingTake(moves, player);
+		moves = validateKingTake(moves);
 
 	selectedMove = 0;
 	showSelectedMove();
@@ -834,4 +837,27 @@ void GameLogic::showSelectedMove()
 {
 	showSelectedPiece();
 	board[moves[selectedMove].endRow][moves[selectedMove].endColumn] = moveTo;
+}
+
+
+
+
+
+
+
+
+
+// Returns all pieces tha can move and whether the pieces have to take
+std::vector<piece> GameLogic::getPieceChoices(bool &take)
+{
+	// Get pieces that can move
+	choices = haveToMove();
+	can_take = true;
+	if (choices.size() == 0)
+	{
+		can_take = false;
+		choices = canMove();
+	}
+	take = can_take;
+	return choices;
 }

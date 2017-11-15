@@ -13,6 +13,7 @@
 #include <vector>
 #include <deque>
 #include <stack>
+#include <queue>
 #include <array>
 #include <string>
 #include <tuple>
