@@ -47,12 +47,14 @@ public:
 	GameLogic();
 	~GameLogic();
 
-	// Executes the selected move
+	// Executes the selected move / Returns -1 if more moves available, 0 if game is not over, returns winner otherwise
 	int executeMove();
-	// Executes given move
+	// Executes given move / Returns -1 if more moves available, 0 if game is not over, returns winner otherwise
 	int executeMove(move m);
 	// Undoes a move
 	void undo();
+	// Undoes a turn
+	void undoMove();
 	// Redoes a move
 	void redo();
 
@@ -80,6 +82,7 @@ public:
 	std::deque<move> getHistory() { return history; }
 	std::stack<move> getRedoStack() { return redoStack; }
 	std::vector<move> getMoves() { return moves; }
+	int getWinner() { return winner; }
 
 private:
 	std::array<std::array<space, 8>, 8> board;	// stores the current board configuration

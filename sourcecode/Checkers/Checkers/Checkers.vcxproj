@@ -143,9 +143,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="AI.h" />
     <ClInclude Include="GameLogic.h" />
     <ClInclude Include="stdafx.h" />

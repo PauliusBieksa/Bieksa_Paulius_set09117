@@ -532,7 +532,7 @@ std::vector<move> GameLogic::validateKingTake(std::vector<move> mv)
 
 
 
-// Executes given move
+// Executes given move / Returns -1 if more moves available, 0 if game is not over, returns winner otherwise
 int GameLogic::executeMove()
 {
 	move m = moves[selectedMove];
@@ -541,10 +541,14 @@ int GameLogic::executeMove()
 
 
 
-// Executes the selected move // Returns -1 if more moves available, 0 if game is not over, returns winner otherwise
+// Executes the selected move / Returns -1 if more moves available, 0 if game is not over, returns winner otherwise
 int GameLogic::executeMove(move m)
 {
 	history.push_back(m);
+	while (!redoStack.empty())
+	{
+		redoStack.pop();
+	}
 	for (piece &p : playerPieces[player == 1 ? 0 : 1])
 		if (p.row == m.startRow && p.column == m.startColumn)
 		{
@@ -603,7 +607,8 @@ int GameLogic::executeMove(move m)
 		for (int i = 0; i < choices.size(); i++)
 			if (choices[i] == tmp)
 			{
-				selectedMove = i;
+				selectedPiece = i;
+				selectedMove = 0;
 				showSelectedMove();
 				return -1;
 			}
@@ -629,7 +634,7 @@ int GameLogic::executeMove(move m)
 
 
 
-// Undoes a move
+// Undoes a turn
 void GameLogic::undo()
 {
 	if (history.size() == 0)
@@ -675,7 +680,61 @@ void GameLogic::undo()
 
 
 
-// Redoes a move
+// Undoes a turn
+void GameLogic::undoMove()
+{
+	if (history.size() == 0)
+		return;
+	clearSelection();
+		move m = history.back();
+		space s = board[m.endRow][m.endColumn];
+		// Move the 'move' to redo stack
+		redoStack.push(m);
+		history.pop_back();
+		// If kinged this turn make the piece not a king
+		if (s == whiteKing && !m.king)
+			s = white;
+		else if (s == blackKing && !m.king)
+			s = black;
+		// Update board
+		board[m.endRow][m.endColumn] = empty;
+		board[m.startRow][m.startColumn] = s;
+		for (piece &p : playerPieces[player == 2 ? 0 : 1])
+			if (m.endRow == p.row && m.endColumn == p.column)
+			{
+				p.row = m.startRow;
+				p.column = m.startColumn;
+				p.king = m.king;
+			}
+		// Return piece to the piece list if it was taken
+		if (m.taken)
+		{
+			playerPieces[player == 1 ? 0 : 1].push_back(m.takenPiece);
+			if (m.takenPiece.king)
+				board[m.takenPiece.row][m.takenPiece.column] = player == 2 ? blackKing : whiteKing;
+			else
+				board[m.takenPiece.row][m.takenPiece.column] = player == 2 ? black : white;
+		}
+		if (history.size() == 0)
+		{
+			player = 1;
+			updatePieceChoices();
+		}
+		if (history.back().endRow == redoStack.top().startRow && history.back().endColumn == redoStack.top().startColumn)
+		{
+			choices.clear();
+			choices.push_back(findPiece(history.back().endRow, history.back().endColumn, (s == white || s == whiteKing) ? 1 : 2));
+		}
+		else
+		{
+			player = player == 1 ? 2 : 1;
+			updatePieceChoices();
+		}
+}
+
+
+
+// Redoes a turn
 void GameLogic::redo()
 {
 	if (redoStack.size() == 0)
@@ -850,6 +909,9 @@ void GameLogic::showSelectedMove()
 // Returns all pieces tha can move and whether the pieces have to take
 std::vector<piece> GameLogic::getPieceChoices(bool &take)
 {
+	choices.clear();
+	if (winner > 0)
+		return choices;
 	// Get pieces that can move
 	choices = haveToMove();
 	can_take = true;

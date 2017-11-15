@@ -1,20 +1,11 @@
 #include "stdafx.h"
 #include "AI.h"
 
-// Tree structurre all possible moves for a turn
-struct node
-{
-	node * up;
-	std::vector<node*> down;
-	move m;
-};
-
 // Destructor for the tree structure
 void deleteTree(node * root)
 {
 	for (node * n : root->down)
 		deleteTree(n);
-	delete root->up;
 	delete root;
 	return;
 }
@@ -50,8 +41,8 @@ int AI::turnScore(std::list<move> turn)
 
 
 
-// Returns a vector of all available turns stored in queues of moves
-std::vector<std::list<move>> AI::generateTurns(node * root)
+// Returns a vector of all available turns stored in lists of moves
+std::vector<std::list<move>> AI::generateTurns()
 {
 	bool can_take;
 	std::vector<piece> pieces = aigl.getPieceChoices(can_take);
@@ -111,31 +102,101 @@ std::list<node *> AI::getLeaves(node * root)
 	}
 	else
 		for (node * n : root->down)
-			l.insert(l.end(), getLeaves(n).begin(), getLeaves(n).end());
+		{
+			std::list<node*> tmp = getLeaves(n);
+			l.push_back(tmp.front());
+			//	l.insert(l.end(), getLeaves(n).begin(), getLeaves(n).end());
+		}
 	return l;
 }
 
 
 
-// Makes a tree for all valid turns startinf with a given move
+// Makes a tree for all valid turns starting with a given move
 node * AI::makeTurnTree(move m, node * parrent)
 {
 	node * tree = new node();
-	if (parrent != nullptr)
-		tree->up = parrent;
-	else
-		tree->up = nullptr;
+	tree->up = parrent;
 	tree->m = m;
 	tree->down = std::vector<node*>();
 	int moveOutcome = aigl.executeMove(m);
 	if (moveOutcome >= 0)
+	{
+		aigl.undoMove();
 		return tree;
+	}
 	else
 	{
 		std::vector<move> moves = aigl.getMoves();
 		for (move mv : moves)
 			tree->down.push_back(makeTurnTree(mv, tree));
 	}
-	aigl.undo();
+	aigl.undoMove();
 	return tree;
+}
+
+
+
+// Makes a tree for all valid turns starting with a given move for a give turn depth (how many turns in advance to consider)
+int AI::deepTurnScore(int score, int depth, bool opponentsTurn)
+{
+	if (depth > 0)
+	{
+		std::vector<std::list<move>> turns = generateTurns();
+		for (std::list<move> l : turns)
+		{
+			bool win = false;
+			score += (opponentsTurn ? -1 : 1) * turnScore(l);
+			for (move m : l)
+			{
+				if (aigl.executeMove(m) > 0)
+					win = true;
+			}
+			if (!win)
+				score += deepTurnScore(score, depth - 1, !opponentsTurn);
+			aigl.undo();
+		}
+		return score;
+	}
+	else
+		return score;
+}
+
+
+
+// Gets the best turn
+std::list<move> AI::getBestTurn()
+{
+	std::vector<std::list<move>> turns = generateTurns();
+	std::vector<int> scores;
+
+	for (int i = 0; i < turns.size(); i++)
+	{
+		scores.push_back(turnScore(turns[i]));
+		for (move m : turns[i])
+			if (aigl.executeMove(m) > 0)
+			{
+				aigl.undo();
+				return turns[i];
+			}
+		scores[i] += deepTurnScore(scores[i], depth, true);
+		aigl.undo();
+	}
+	int max = INT_MIN;
+	int n = 0;
+	for (int i = 0; i < scores.size(); i++)
+		if (scores[i] > max)
+		{
+			max = scores[i];
+			n = i;
+		}
+	return turns[n];
+}
+
+
+
+// Updates the AI's gameLogic object with the move of the opponent
+void AI::playerMove(GameLogic gl)
+{
+	aigl = gl;
 }
