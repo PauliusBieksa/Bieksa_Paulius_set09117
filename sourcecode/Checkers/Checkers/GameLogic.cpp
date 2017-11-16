@@ -592,7 +592,7 @@ int GameLogic::executeMove(move m)
 			}
 		board[m.takenPiece.row][m.takenPiece.column] = empty;
 	}
-	
+
 
 
 
@@ -600,6 +600,8 @@ int GameLogic::executeMove(move m)
 	for (piece p : playerPieces[player == 1 ? 0 : 1])
 		if (p.row == m.endRow && p.column == m.endColumn)
 			tmp = p;
+
+
 	moves = movesAvailable(tmp, true);
 	if (moves.size() > 0 && can_take)
 	{
@@ -686,50 +688,61 @@ void GameLogic::undoMove()
 	if (history.size() == 0)
 		return;
 	clearSelection();
-		move m = history.back();
-		space s = board[m.endRow][m.endColumn];
-		// Move the 'move' to redo stack
-		redoStack.push(m);
-		history.pop_back();
-		// If kinged this turn make the piece not a king
-		if (s == whiteKing && !m.king)
-			s = white;
-		else if (s == blackKing && !m.king)
-			s = black;
-		// Update board
-		board[m.endRow][m.endColumn] = empty;
-		board[m.startRow][m.startColumn] = s;
-		for (piece &p : playerPieces[player == 2 ? 0 : 1])
-			if (m.endRow == p.row && m.endColumn == p.column)
-			{
-				p.row = m.startRow;
-				p.column = m.startColumn;
-				p.king = m.king;
-			}
-		// Return piece to the piece list if it was taken
-		if (m.taken)
+	move m = history.back();
+	space s = board[m.endRow][m.endColumn];
+	player = (s == white || s == whiteKing) ? 1 : 2;
+	// Move the 'move' to redo stack
+	redoStack.push(m);
+	history.pop_back();
+	// If kinged this turn make the piece not a king
+	if (s == whiteKing && !m.king)
+		s = white;
+	else if (s == blackKing && !m.king)
+		s = black;
+	// Update board
+	board[m.endRow][m.endColumn] = empty;
+	board[m.startRow][m.startColumn] = s;
+	for (piece &p : playerPieces[player == 1 ? 0 : 1])
+		if (m.endRow == p.row && m.endColumn == p.column)
 		{
-			playerPieces[player == 1 ? 0 : 1].push_back(m.takenPiece);
-			if (m.takenPiece.king)
-				board[m.takenPiece.row][m.takenPiece.column] = player == 2 ? blackKing : whiteKing;
-			else
-				board[m.takenPiece.row][m.takenPiece.column] = player == 2 ? black : white;
+			p.row = m.startRow;
+			p.column = m.startColumn;
+			p.king = m.king;
 		}
-		if (history.size() == 0)
-		{
-			player = 1;
-			updatePieceChoices();
-		}
-		if (history.back().endRow == redoStack.top().startRow && history.back().endColumn == redoStack.top().startColumn)
-		{
-			choices.clear();
-			choices.push_back(findPiece(history.back().endRow, history.back().endColumn, (s == white || s == whiteKing) ? 1 : 2));
-		}
+	// Return piece to the piece list if it was taken
+	if (m.taken)
+	{
+		playerPieces[player != 1 ? 0 : 1].push_back(m.takenPiece);
+		if (m.takenPiece.king)
+			board[m.takenPiece.row][m.takenPiece.column] = player == 1 ? blackKing : whiteKing;
 		else
-		{
-			player = player == 1 ? 2 : 1;
-			updatePieceChoices();
-		}
+			board[m.takenPiece.row][m.takenPiece.column] = player == 1 ? black : white;
+	}
+	if (history.size() == 0)
+	{
+		player = 1;
+		updatePieceChoices();
+		return;
+	}
+	/*if (history.back().endRow == redoStack.top().startRow && history.back().endColumn == redoStack.top().startColumn)
+	{
+		choices.clear();
+		choices.push_back(findPiece(history.back().endRow, history.back().endColumn, (s == white || s == whiteKing) ? 1 : 2));
+	}
+	else
+	{
+		player = player == 1 ? 2 : 1;
+		updatePieceChoices();
+	}*/
+	if (history.back().endRow == redoStack.top().startRow && history.back().endColumn == redoStack.top().startColumn)
+	{
+		choices.clear();
+		choices.push_back(findPiece(history.back().endRow, history.back().endColumn, (s == white || s == whiteKing) ? 1 : 2));
+	}
+	else
+	{
+		updatePieceChoices();
+	}
 }
 
 

@@ -113,10 +113,10 @@ std::list<node *> AI::getLeaves(node * root)
 
 
 // Makes a tree for all valid turns starting with a given move
-node * AI::makeTurnTree(move m, node * parrent)
+node * AI::makeTurnTree(move m, node * parent)
 {
 	node * tree = new node();
-	tree->up = parrent;
+	tree->up = parent;
 	tree->m = m;
 	tree->down = std::vector<node*>();
 	int moveOutcome = aigl.executeMove(m);
