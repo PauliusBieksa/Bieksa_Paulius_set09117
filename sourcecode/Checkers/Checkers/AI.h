@@ -25,7 +25,6 @@ public:
 
 private:
 	GameLogic aigl;
-	std::vector<int> points;
 	int depth;
 	int player;
 

@@ -15,7 +15,6 @@ void deleteTree(node * root)
 AI::AI(int player, int dificulty)
 {
 	aigl = GameLogic();
-	points = std::vector<int>();
 	this->player = player;
 	depth = dificulty <= 10 ? dificulty : 10;
 }
@@ -105,7 +104,6 @@ std::list<node *> AI::getLeaves(node * root)
 		{
 			std::list<node*> tmp = getLeaves(n);
 			l.push_back(tmp.front());
-			//	l.insert(l.end(), getLeaves(n).begin(), getLeaves(n).end());
 		}
 	return l;
 }
@@ -127,7 +125,6 @@ node * AI::makeTurnTree(move m, node * parent)
 	}
 	else
 	{
-	//	std::vector<move> moves = aigl.getMoves();
 		for (move mv : aigl.getMoves())
 			tree->down.push_back(makeTurnTree(mv, tree));
 	}

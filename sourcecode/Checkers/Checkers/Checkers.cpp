@@ -127,9 +127,17 @@ int main()
 					else
 						moves = p2AI.getBestTurn();
 					for (move m : moves)
-						gl.executeMove(m);
+						if (gl.executeMove(m) > 0)
+						{
+							std::cout << "Player " << gl.getWinner() << " won!" << std::endl;
+							break;
+						}
 					if (player1 == false && player2 == false)
 					{
+						if (gl.getPlayer() == 1)
+							p1AI.playerMove(gl);
+						else
+							p2AI.playerMove(gl);
 						printBoard(gl);
 						std::cout << "Press Enter to see the next turn." << std::endl;
 						std::cout << "Press Q followed by ENTER to abandon game." << std::endl;
