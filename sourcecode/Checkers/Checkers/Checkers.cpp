@@ -121,29 +121,37 @@ int main()
 				// AI
 				if ((gl.getPlayer() == 1 && !player1) || (gl.getPlayer() == 2 && !player2))
 				{
+					p1AI.playerMove(gl);
+					p2AI.playerMove(gl);
 					std::list<move> moves;
 					if (gl.getPlayer() == 1)
 						moves = p1AI.getBestTurn();
 					else
 						moves = p2AI.getBestTurn();
 					for (move m : moves)
-						if (gl.executeMove(m) > 0)
-						{
-							std::cout << "Player " << gl.getWinner() << " won!" << std::endl;
-							break;
-						}
+						winner = gl.executeMove(m);
+					if (winner > 0)
+					{
+						std::cout << "Player " << gl.getWinner() << " won!" << std::endl;
+						break;
+					}
 					if (player1 == false && player2 == false)
 					{
-						if (gl.getPlayer() == 1)
-							p1AI.playerMove(gl);
-						else
-							p2AI.playerMove(gl);
 						printBoard(gl);
 						std::cout << "Press Enter to see the next turn." << std::endl;
+						if (gl.getHistory().size() > 0)
+							std::cout << "Press U to undo a move." << std::endl;
 						std::cout << "Press Q followed by ENTER to abandon game." << std::endl;
 						std::getline(std::cin, tmp);
 						if (tmp == "q" || tmp == "Q")
 							break;
+						// Undo
+						else if (tmp == "u" || tmp == "U")
+						{
+							gl.undo();
+							gl.undo();
+							continue;
+						}
 					}
 				}
 				// Human players
@@ -224,11 +232,6 @@ int main()
 									continue;
 								else if (moveOutcome > 0)
 									winner = moveOutcome;
-								// Once all moves done updet AI's gameLogic object
-								if (!player1)
-									p1AI.playerMove(gl);
-								if (!player2)
-									p2AI.playerMove(gl);
 								break;
 							}
 							// Cancel piece selection
