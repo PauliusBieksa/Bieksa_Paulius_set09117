@@ -127,8 +127,8 @@ node * AI::makeTurnTree(move m, node * parent)
 	}
 	else
 	{
-		std::vector<move> moves = aigl.getMoves();
-		for (move mv : moves)
+	//	std::vector<move> moves = aigl.getMoves();
+		for (move mv : aigl.getMoves())
 			tree->down.push_back(makeTurnTree(mv, tree));
 	}
 	aigl.undoMove();

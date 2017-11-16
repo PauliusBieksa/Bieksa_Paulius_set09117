@@ -544,6 +544,10 @@ int GameLogic::executeMove()
 // Executes the selected move / Returns -1 if more moves available, 0 if game is not over, returns winner otherwise
 int GameLogic::executeMove(move m)
 {
+	// If the piece to move does not exist return -2
+	if (findPiece(m.startRow, m.startColumn, player).row == 9)
+		return -2;
+
 	history.push_back(m);
 	while (!redoStack.empty())
 	{
@@ -593,14 +597,10 @@ int GameLogic::executeMove(move m)
 		board[m.takenPiece.row][m.takenPiece.column] = empty;
 	}
 
-
-
-
 	piece tmp;
 	for (piece p : playerPieces[player == 1 ? 0 : 1])
 		if (p.row == m.endRow && p.column == m.endColumn)
 			tmp = p;
-
 
 	moves = movesAvailable(tmp, true);
 	if (moves.size() > 0 && can_take)
@@ -724,16 +724,6 @@ void GameLogic::undoMove()
 		updatePieceChoices();
 		return;
 	}
-	/*if (history.back().endRow == redoStack.top().startRow && history.back().endColumn == redoStack.top().startColumn)
-	{
-		choices.clear();
-		choices.push_back(findPiece(history.back().endRow, history.back().endColumn, (s == white || s == whiteKing) ? 1 : 2));
-	}
-	else
-	{
-		player = player == 1 ? 2 : 1;
-		updatePieceChoices();
-	}*/
 	if (history.back().endRow == redoStack.top().startRow && history.back().endColumn == redoStack.top().startColumn)
 	{
 		choices.clear();
@@ -811,6 +801,8 @@ void GameLogic::updatePieceChoices()
 	{
 		can_take = false;
 		choices = canMove();
+		if (choices.size() == 0)
+			return;
 	}
 	selectedPiece = 0;
 	showSelectedPiece();
@@ -910,12 +902,6 @@ void GameLogic::showSelectedMove()
 	showSelectedPiece();
 	board[moves[selectedMove].endRow][moves[selectedMove].endColumn] = moveTo;
 }
-
-
-
-
-
-
 
 
 

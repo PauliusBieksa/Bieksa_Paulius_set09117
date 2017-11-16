@@ -1,2 +1,3 @@
 https://stackoverflow.com/questions/3882467/defining-operator-for-a-struct
 http://en.cppreference.com/w/cpp/utility/tuple/tie
+https://brainking.com/en/GameRules?tp=117

@@ -12,7 +12,7 @@ bool player2 = true;		// True for player, false for AI
 int winner;			// When a winner is determined this gets assigned to either 1 or 2
 std::deque<move> replay;	// After a game is complete this is assigned the history deque from game logic adn can be used to replay a game
 
-int const AI_dificulty = 3;
+int const AI_dificulty = 2;
 
 
 
@@ -105,7 +105,7 @@ int main()
 		if (player2)
 			std::cout << "Enter 3 to use AI for player 2." << std::endl;
 		else
-			std::cout << "Enter 2 to have player 2 be controlled by a player." << std::endl;
+			std::cout << "Enter 3 to have player 2 be controlled by a player." << std::endl;
 		if (replay.size() > 0)
 			std::cout << "Enter 4 to show a replay of the last game." << std::endl;
 		std::cout << "Enter EXIT to exit." << std::endl;
@@ -130,6 +130,7 @@ int main()
 						gl.executeMove(m);
 					if (player1 == false && player2 == false)
 					{
+						printBoard(gl);
 						std::cout << "Press Enter to see the next turn." << std::endl;
 						std::cout << "Press Q followed by ENTER to abandon game." << std::endl;
 						std::getline(std::cin, tmp);
