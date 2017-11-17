@@ -9,6 +9,7 @@
 *.userosscache
 *.sln.docstates
 *.tlog
+executable/!Checkers.exe
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
